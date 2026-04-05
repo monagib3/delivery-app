@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>تقديم طلب | بدر الدين</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="طلب | بدر الدين">
+<meta name="theme-color" content="#1a1a2e">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #f5f0e8;
+    --bg-card:     #fffdf7;
+    --ink:         #1a1a2e;
+    --ink-soft:    #5a5a72;
+    --gold:        #c8963e;
+    --gold-light:  #f5e6c8;
+    --gold-pale:   #fdf7ed;
+    --green:       #2d6a4f;
+    --green-light: #d8f3dc;
+    --red:         #c0392b;
+    --red-light:   #fde8e6;
+    --border:      #e0d8c8;
+    --shadow:      0 2px 16px rgba(26,26,46,0.08);
+    --shadow-lg:   0 8px 40px rgba(26,26,46,0.14);
+    --radius:      14px;
+    --radius-sm:   8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--ink);
+    padding: 28px 20px 22px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--gold);
+  }
+  .header-eyebrow {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .header-distributor {
+    display: inline-block;
+    margin-top: 8px;
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+  .header-distributor.hidden { display: none; }
+
+  /* ── Container ── */
+  .container { max-width: 600px; margin: 0 auto; padding: 20px 16px; }
+
+  /* ── Error screen ── */
+  .error-screen {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .error-screen.visible { display: block; }
+  .error-icon { font-size: 48px; margin-bottom: 16px; }
+  .error-title { font-size: 20px; font-weight: 900; color: var(--red); margin-bottom: 8px; }
+  .error-body { font-size: 14px; color: var(--ink-soft); line-height: 1.7; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 12px;
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Product catalog grid ── */
+  .catalog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 380px) {
+    .catalog-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Product card ── */
+  .product-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    animation: fadeUp 0.4s ease both;
+  }
+  .product-card.active {
+    border-color: var(--gold);
+    background: var(--gold-pale);
+    box-shadow: 0 4px 16px rgba(200,150,62,0.15);
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .product-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+  .product-name-en {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    font-family: 'DM Mono', monospace;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── Stepper ── */
+  .stepper {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .stepper-btn {
+    width: 38px;
+    height: 38px;
+    border: none;
+    background: transparent;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .stepper-btn:hover  { background: var(--gold-light); }
+  .stepper-btn:active { background: var(--gold); color: white; }
+  .stepper-input {
+    flex: 1;
+    border: none;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+    background: transparent;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+  .stepper-input:focus { outline: none; }
+
+  /* ── Notes ── */
+  .notes-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 10px;
+  }
+  textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--bg);
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { outline: none; border-color: var(--gold); }
+
+  /* ── Sticky bottom bar ── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--ink);
+    border-top: 2px solid var(--gold);
+    padding: 12px 16px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 100%;
+  }
+  .bottom-summary {
+    flex: 1;
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .bottom-summary-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--gold);
+    display: block;
+  }
+  .bottom-summary-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .btn-review {
+    padding: 12px 20px;
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    white-space: nowrap;
+  }
+  .btn-review:hover   { opacity: 0.9; transform: translateY(-1px); }
+  .btn-review:active  { transform: translateY(0); }
+  .btn-review:disabled {
+    background: #555;
+    color: #999;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,46,0.6);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--bg-card);
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-top: 3px solid var(--gold);
+    width: 100%;
+    max-width: 600px;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 24px 20px 32px;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .modal-subtitle {
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── Review table ── */
+  .review-block {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .review-block-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .review-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .review-row:last-child { border-bottom: none; }
+  .review-row .label { color: var(--ink-soft); }
+  .review-row .value {
+    font-weight: 700;
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+  }
+  .review-total {
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .review-total .value {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    color: var(--gold);
+  }
+
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-cancel {
+    flex: 1;
+    padding: 14px;
+    background: transparent;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-cancel:hover { background: var(--bg); }
+  .btn-confirm {
+    flex: 2;
+    padding: 14px;
+    background: var(--gold);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--ink);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-confirm:hover { opacity: 0.9; }
+
+  /* ── Loading overlay ── */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,46,0.7);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-overlay.visible { display: flex; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(200,150,62,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: #fff; font-size: 15px; font-weight: 600; }
+
+  /* ── Success screen ── */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 50px 20px;
+    animation: fadeUp 0.5s ease;
+  }
+  .success-screen.visible { display: block; }
+  .success-icon {
+    width: 88px; height: 88px;
+    background: var(--green-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 24px;
+    animation: pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+  .success-title {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--green);
+    margin-bottom: 6px;
+  }
+  .success-subtitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+  }
+  .success-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--gold-light);
+    border: 2px solid var(--gold);
+    padding: 10px 24px;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+  .success-msg {
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+    margin-bottom: 32px;
+  }
+  .btn-new {
+    padding: 14px 32px;
+    background: var(--ink);
+    color: var(--gold);
+    border: 2px solid var(--gold);
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-new:hover { background: var(--gold); color: var(--ink); }
+
+  /* ── Inline error ── */
+  .inline-error {
+    display: none;
+    background: var(--red-light);
+    border: 1px solid var(--red);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .inline-error.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-eyebrow">Badr El-Din Farms · بدر الدين</div>
+  <div class="header-title">تقديم طلب جديد · Place Order</div>
+  <div class="header-distributor hidden" id="distBadge"></div>
+</div>
+
+<!-- Main content -->
+<div class="container" id="mainForm">
+  <div class="inline-error" id="errorMsg"></div>
+
+  <!-- Product catalog -->
+  <div class="section-label">المنتجات · Products</div>
+  <div class="catalog-grid" id="catalogGrid"></div>
+
+  <!-- Notes -->
+  <div class="section-label">ملاحظات · Notes</div>
+  <div class="notes-card">
+    <textarea id="notes" placeholder="أي ملاحظات إضافية... / Any additional notes..."></textarea>
+  </div>
+</div>
+
+<!-- Success screen -->
+<div class="container">
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">✅</div>
+    <div class="success-title">تم استلام طلبك!</div>
+    <div class="success-subtitle">Order Received Successfully</div>
+    <div class="success-id" id="successOrderId"></div>
+    <div class="success-msg" id="successMsg"></div>
+    <button class="btn-new" onclick="resetForm()">تقديم طلب جديد · New Order</button>
+  </div>
+</div>
+
+<!-- Error screen (invalid distributor) -->
+<div class="container">
+  <div class="error-screen" id="errorScreen">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title">رابط غير صالح · Invalid Link</div>
+    <div class="error-body">
+      هذا الرابط غير مرتبط بأي موزع معروف.<br>
+      يرجى التواصل مع فريق بدر الدين للحصول على رابطك الصحيح.<br><br>
+      This link does not match any known distributor.<br>
+      Please contact the Badr El-Din team for your correct link.
+    </div>
+  </div>
+</div>
+
+<!-- Sticky bottom bar -->
+<div class="bottom-bar" id="bottomBar">
+  <div class="bottom-summary">
+    <span class="bottom-summary-count" id="totalCount">0</span>
+    <span class="bottom-summary-label">كرتونة · cases</span>
+  </div>
+  <button class="btn-review" id="btnReview" onclick="showReviewModal()" disabled>
+    مراجعة وإرسال
+  </button>
+</div>
+
+<!-- Review modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">مراجعة الطلب · Review Order</div>
+    <div class="modal-subtitle">تأكد من صحة البيانات قبل الإرسال</div>
+    <div id="modalContent"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">تعديل · Edit</button>
+      <button class="btn-confirm" onclick="confirmSubmit()">تأكيد الإرسال · Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">جاري الإرسال... / Submitting...</div>
+</div>
+
+<script>
+  // ── CONFIGURATION ──
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkDx5nDV73amoXgEb34h-PfPHy95DMcUsyqtIhwv5EXorz6vQXYws0S5Ht8SP_6NBn_w/exec";
+
+  // ── Distributor map: URL key → exact name in Orders sheet ──
+  const DISTRIBUTOR_MAP = {
+    "family-alex":   "Family Alex",
+    "cairo-office":  "Cairo Office"
+  };
+
+  // ── Flavor list (must match CONFIG.FLAVORS order in Apps Script) ──
+  const FLAVORS = [
+    "Mango", "Blueberry", "Strawberry", "Pineapple", "Lemon-Mint",
+    "Cantaloupe", "Coconut", "Watermelon", "Orange", "Peach",
+    "Red Apple", "Green Apple", "Pomegranate"
+  ];
+
+  // ── Arabic flavor names ──
+  const FLAVORS_AR = {
+    "Mango":        "مانجو",
+    "Blueberry":    "توت أزرق",
+    "Strawberry":   "فراولة",
+    "Pineapple":    "أناناس",
+    "Lemon-Mint":   "ليمون نعناع",
+    "Cantaloupe":   "شمام",
+    "Coconut":      "جوز هند",
+    "Watermelon":   "بطيخ",
+    "Orange":       "برتقال",
+    "Peach":        "خوخ",
+    "Red Apple":    "تفاح أحمر",
+    "Green Apple":  "تفاح أخضر",
+    "Pomegranate":  "رمان"
+  };
+
+  let distributorName = null;
+
+  // ── Init ──
+  window.onload = function() {
+    const params  = new URLSearchParams(window.location.search);
+    const distKey = params.get("dist");
+    distributorName = DISTRIBUTOR_MAP[distKey] || null;
+
+    if (!distributorName) {
+      // Hide form, show error screen
+      document.getElementById("mainForm").style.display   = "none";
+      document.getElementById("bottomBar").style.display  = "none";
+      document.getElementById("errorScreen").className    = "error-screen visible";
+      return;
+    }
+
+    // Show distributor badge in header
+    const badge = document.getElementById("distBadge");
+    badge.textContent = distributorName;
+    badge.classList.remove("hidden");
+
+    buildCatalog();
+  };
+
+  // ── Build product catalog ──
+  function buildCatalog() {
+    const grid = document.getElementById("catalogGrid");
+    grid.innerHTML = "";
+    FLAVORS.forEach((flavor, i) => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.id = `card-${i}`;
+      card.style.animationDelay = `${i * 0.04}s`;
+      card.innerHTML = `
+        <div class="product-name">
+          ${FLAVORS_AR[flavor] || flavor}
+          <span class="product-name-en">${flavor}</span>
+        </div>
+        <div class="stepper">
+          <button class="stepper-btn" onclick="decrement(${i})">−</button>
+          <input class="stepper-input" type="number" id="qty-${i}"
+            value="0" min="0" oninput="onQtyChange(${i})" onchange="onQtyChange(${i})">
+          <button class="stepper-btn" onclick="increment(${i})">+</button>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  function increment(i) {
+    const inp = document.getElementById(`qty-${i}`);
+    inp.value = parseInt(inp.value || 0) + 1;
+    onQtyChange(i);
+  }
+
+  function decrement(i) {
+    const inp = document.getElementById(`qty-${i}`);
+    const v   = parseInt(inp.value || 0);
+    if (v > 0) { inp.value = v - 1; onQtyChange(i); }
+  }
+
+  function onQtyChange(i) {
+    const val  = parseInt(document.getElementById(`qty-${i}`).value || 0);
+    const card = document.getElementById(`card-${i}`);
+    card.classList.toggle("active", val > 0);
+    updateBottomBar();
+  }
+
+  function updateBottomBar() {
+    const total = FLAVORS.reduce((sum, f, i) =>
+      sum + (parseInt(document.getElementById(`qty-${i}`).value || 0)), 0);
+    document.getElementById("totalCount").textContent = total;
+    document.getElementById("btnReview").disabled = total === 0;
+  }
+
+  // ── Review modal ──
+  function showReviewModal() {
+    hideError();
+    const nonZero = [];
+    let total = 0;
+    FLAVORS.forEach((f, i) => {
+      const qty = parseInt(document.getElementById(`qty-${i}`).value || 0);
+      if (qty > 0) { nonZero.push({ name: f, nameAr: FLAVORS_AR[f], qty }); total += qty; }
+    });
+
+    const notes = document.getElementById("notes").value;
+
+    let html = `
+      <div class="review-block">
+        <div class="review-block-title">معلومات الطلب · Order Info</div>
+        <div class="review-row">
+          <span class="label">الموزع / Distributor</span>
+          <span class="value">${distributorName}</span>
+        </div>
+      </div>
+      <div class="review-block">
+        <div class="review-block-title">المنتجات المطلوبة · Items</div>
+        ${nonZero.map(f => `
+          <div class="review-row">
+            <span class="label">${f.nameAr} · ${f.name}</span>
+            <span class="value">${f.qty}</span>
+          </div>`).join("")}
+      </div>
+      <div class="review-total">
+        <span>الإجمالي · Total</span>
+        <span class="value">${total} كرتونة</span>
+      </div>`;
+
+    if (notes.trim()) {
+      html += `
+        <div class="review-block">
+          <div class="review-block-title">ملاحظات · Notes</div>
+          <div style="font-size:14px;color:var(--ink);line-height:1.7">${notes}</div>
+        </div>`;
+    }
+
+    document.getElementById("modalContent").innerHTML = html;
+    document.getElementById("modalOverlay").className = "modal-overlay visible";
+  }
+
+  function closeModal() {
+    document.getElementById("modalOverlay").className = "modal-overlay";
+  }
+
+  // ── Submit ──
+  async function confirmSubmit() {
+    closeModal();
+    document.getElementById("loadingOverlay").className = "loading-overlay visible";
+
+    // Build flavors object
+    const flavors = {};
+    FLAVORS.forEach((f, i) => {
+      flavors[f] = parseInt(document.getElementById(`qty-${i}`).value || 0);
+    });
+
+    const payload = {
+      action:      "submitOrder",
+      distributor: distributorName,
+      flavors:     flavors,
+      notes:       document.getElementById("notes").value
+    };
+
+    try {
+      const res  = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        body:   JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      document.getElementById("loadingOverlay").className = "loading-overlay";
+
+      if (!data.success) throw new Error(data.error);
+
+      // Show success screen
+      document.getElementById("mainForm").style.display  = "none";
+      document.getElementById("bottomBar").style.display = "none";
+      document.getElementById("successOrderId").textContent = data.orderId;
+
+      const nonZero = FLAVORS
+        .map((f, i) => ({ name: f, qty: parseInt(document.getElementById(`qty-${i}`).value || 0) }))
+        .filter(f => f.qty > 0);
+
+      document.getElementById("successMsg").innerHTML =
+        `تم تسجيل طلبك بنجاح.<br>` +
+        `سيتم إشعارك على الواتساب عند شحن الطلب.<br><br>` +
+        `Your order has been registered.<br>` +
+        `You will receive a WhatsApp notification when your order ships.`;
+
+      document.getElementById("successScreen").className = "success-screen visible";
+
+    } catch (err) {
+      document.getElementById("loadingOverlay").className = "loading-overlay";
+      showError("حدث خطأ أثناء الإرسال · Submission error: " + err.message);
+    }
+  }
+
+  function resetForm() {
+    document.getElementById("mainForm").style.display  = "block";
+    document.getElementById("bottomBar").style.display = "flex";
+    document.getElementById("successScreen").className = "success-screen";
+    document.getElementById("notes").value = "";
+    FLAVORS.forEach((f, i) => {
+      document.getElementById(`qty-${i}`).value = 0;
+      document.getElementById(`card-${i}`).classList.remove("active");
+    });
+    updateBottomBar();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.className = "inline-error visible";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  function hideError() {
+    document.getElementById("errorMsg").className = "inline-error";
+  }
+</script>
+</body>
+</html>
