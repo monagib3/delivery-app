@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>تسجيل المرتجعات | Badr El-Din</title>
+<!-- PWA: Makes the app installable on mobile home screen -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="مرتجعات | بدر الدين">
+<meta name="application-name" content="مرتجعات | بدر الدين">
+<meta name="theme-color" content="#1a3a2a">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark:  #1a3a2a;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --gold-light:  #fef3e2;
+    --white:       #fafafa;
+    --grey-light:  #f0f4f1;
+    --grey-mid:    #c8d8cc;
+    --grey-text:   #5a6b61;
+    --danger:      #e63946;
+    --shadow:      0 4px 24px rgba(26,58,42,0.10);
+    --radius:      16px;
+    --radius-sm:   10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--grey-light);
+    color: var(--green-dark);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+    padding: 24px 20px 20px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(26,58,42,0.25);
+  }
+  .header-logo {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--green-light);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .header-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1.2;
+  }
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--green-pale);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  /* ── Container ── */
+  .container { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(82,183,136,0.12);
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--green-mid);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--grey-mid);
+  }
+
+  /* ── Select / Input ── */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--grey-text);
+    margin-bottom: 6px;
+  }
+  .field select, .field input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--grey-mid);
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    color: var(--green-dark);
+    background: var(--white);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field select:focus, .field input[type="text"]:focus {
+    outline: none;
+    border-color: var(--green-light);
+    box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
+  }
+  .select-wrapper { position: relative; }
+  .select-wrapper::after {
+    content: '▾';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--green-mid);
+    pointer-events: none;
+    font-size: 16px;
+  }
+
+  /* ── Flavor Grid ── */
+  .flavor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 400px) {
+    .flavor-grid { grid-template-columns: 1fr; }
+  }
+
+  .flavor-item {
+    background: var(--grey-light);
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .flavor-item.has-value {
+    border-color: var(--green-light);
+    background: var(--green-pale);
+  }
+
+  .flavor-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--green-dark);
+    margin-bottom: 8px;
+  }
+
+  /* ── Stepper ── */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--white);
+    border-radius: 8px;
+    border: 1px solid var(--grey-mid);
+    overflow: hidden;
+  }
+  .stepper-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--green-mid);
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .stepper-btn:hover { background: var(--green-pale); }
+  .stepper-btn:active { background: var(--green-light); color: white; }
+  .stepper-input {
+    flex: 1;
+    border: none;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--green-dark);
+    background: transparent;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+  .stepper-input:focus { outline: none; }
+
+  /* ── Notes ── */
+  textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--grey-mid);
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    color: var(--green-dark);
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { outline: none; border-color: var(--green-light); }
+
+  /* ── Submit Button ── */
+  .btn-submit {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--green-mid), var(--green-dark));
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Cairo', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(45,106,79,0.35);
+    letter-spacing: 0.5px;
+  }
+  .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(45,106,79,0.4); }
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled { background: var(--grey-mid); box-shadow: none; cursor: not-allowed; transform: none; }
+
+  /* ── Loading State ── */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,58,42,0.6);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-overlay.visible { display: flex; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(255,255,255,0.2);
+    border-top-color: var(--green-light);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: white; font-size: 15px; font-weight: 600; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,58,42,0.55);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 24px 20px;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--grey-mid);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--green-dark);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .modal-subtitle {
+    font-size: 12px;
+    color: var(--grey-text);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  /* ── Review Table ── */
+  .review-section {
+    background: var(--grey-light);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .review-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green-mid);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .review-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--grey-mid);
+    font-size: 14px;
+  }
+  .review-row:last-child { border-bottom: none; }
+  .review-row .label { color: var(--grey-text); }
+  .review-row .value { font-weight: 700; color: var(--green-dark); font-family: 'DM Mono', monospace; }
+  .review-total {
+    background: var(--green-pale);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--green-dark);
+    margin-bottom: 14px;
+  }
+
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-cancel {
+    flex: 1;
+    padding: 14px;
+    background: var(--grey-light);
+    border: 2px solid var(--grey-mid);
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--grey-text);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-cancel:hover { background: var(--grey-mid); }
+  .btn-confirm {
+    flex: 2;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--green-mid), var(--green-dark));
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 12px rgba(45,106,79,0.3);
+  }
+  .btn-confirm:hover { opacity: 0.9; }
+
+  /* ── Success Screen ── */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+    animation: fadeUp 0.5s ease;
+  }
+  .success-screen.visible { display: block; }
+  .success-icon {
+    width: 80px; height: 80px;
+    background: var(--green-pale);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 20px;
+    animation: pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+  .success-title { font-size: 22px; font-weight: 900; color: var(--green-dark); margin-bottom: 8px; }
+  .success-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--green-mid);
+    background: var(--green-pale);
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    margin: 10px 0 20px;
+  }
+  .success-msg { font-size: 14px; color: var(--grey-text); margin-bottom: 28px; line-height: 1.7; }
+  .btn-new {
+    padding: 14px 32px;
+    background: var(--green-mid);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Cairo', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── Error ── */
+  .error-msg {
+    display: none;
+    background: #fce4e4;
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .error-msg.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">Badr El-Din Farms · بدر الدين</div>
+  <div class="header-title">تسجيل المرتجعات</div>
+  <div class="header-subtitle">Returns Registration</div>
+</div>
+
+<!-- Main Form -->
+<div class="container" id="mainForm">
+
+  <!-- Error -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Step 1: Distributor -->
+  <div class="card" style="animation-delay:0.05s">
+    <div class="card-title">🏬 الموزع · Distributor</div>
+    <div class="field">
+      <label>اختر الموزع · Select Distributor</label>
+      <div class="select-wrapper">
+        <select id="distributorSelect">
+          <option value="">-- جاري التحميل... / Loading... --</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Quantities -->
+  <div class="card" style="animation-delay:0.10s">
+    <div class="card-title">📦 الكميات المرتجعة · Returned Quantities</div>
+    <div class="flavor-grid" id="flavorGrid"></div>
+  </div>
+
+  <!-- Step 3: Notes -->
+  <div class="card" style="animation-delay:0.15s">
+    <div class="card-title">📝 ملاحظات · Notes</div>
+    <div class="field">
+      <textarea id="notes" placeholder="أي ملاحظات إضافية... / Any additional notes..."></textarea>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <button class="btn-submit" onclick="showReviewModal()">
+    مراجعة وتأكيد · Review & Confirm
+  </button>
+
+</div>
+
+<!-- Success Screen -->
+<div class="container">
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">✅</div>
+    <div class="success-title">تم تسجيل المرتجع بنجاح!</div>
+    <div class="success-title" style="font-size:15px;font-weight:600;color:var(--grey-text)">Return Registered Successfully</div>
+    <div class="success-id" id="successReturnId"></div>
+    <div class="success-msg" id="successMsg"></div>
+    <button class="btn-new" onclick="resetForm()">تسجيل مرتجع جديد · New Return</button>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">مراجعة المرتجع · Review Return</div>
+    <div class="modal-subtitle">تأكد من صحة البيانات قبل الإرسال · Please verify before submitting</div>
+    <div id="modalContent"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">تعديل · Edit</button>
+      <button class="btn-confirm" onclick="submitReturn()">تأكيد الإرسال · Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">جاري الإرسال... / Submitting...</div>
+</div>
+
+<script>
+  // ── Apps Script Web App endpoint ──
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkDx5nDV73amoXgEb34h-PfPHy95DMcUsyqtIhwv5EXorz6vQXYws0S5Ht8SP_6NBn_w/exec";
+
+  // ── Data loaded from Apps Script ──
+  let FLAVORS = [];
+  let DISTRIBUTORS = [];
+
+  // ── Init ──
+  window.onload = function() {
+    loadContext();
+  };
+
+  function loadContext() {
+    setLoading(true, 'جاري التحميل... / Loading...');
+    fetch(SCRIPT_URL + '?action=getReturnContext')
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
+        if (!data.success) {
+          showError('فشل تحميل البيانات · Failed to load data: ' + (data.error || ''));
+          return;
+        }
+        FLAVORS = data.flavors;
+        DISTRIBUTORS = data.distributors;
+        buildDistributorDropdown();
+        buildFlavorGrid();
+      })
+      .catch(err => {
+        setLoading(false);
+        showError('فشل الاتصال بالخادم · Connection error: ' + err.message);
+      });
+  }
+
+  function buildDistributorDropdown() {
+    const sel = document.getElementById('distributorSelect');
+    sel.innerHTML = '<option value="">-- اختر الموزع --</option>';
+    DISTRIBUTORS.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.text = name;
+      sel.appendChild(opt);
+    });
+  }
+
+  function buildFlavorGrid() {
+    const grid = document.getElementById('flavorGrid');
+    grid.innerHTML = '';
+    FLAVORS.forEach((flavor, i) => {
+      const div = document.createElement('div');
+      div.className = 'flavor-item';
+      div.id = `flavor-item-${i}`;
+      div.innerHTML = `
+        <div class="flavor-name">${flavor}</div>
+        <div class="stepper">
+          <button class="stepper-btn" onclick="decrement(${i})">−</button>
+          <input class="stepper-input" type="number" id="qty-${i}" value="0" min="0"
+            oninput="onQtyChange(${i})" onchange="onQtyChange(${i})">
+          <button class="stepper-btn" onclick="increment(${i})">+</button>
+        </div>`;
+      grid.appendChild(div);
+    });
+  }
+
+  function resetQtys() {
+    FLAVORS.forEach((f, i) => {
+      document.getElementById(`qty-${i}`).value = 0;
+      document.getElementById(`flavor-item-${i}`).classList.remove('has-value');
+    });
+  }
+
+  function increment(i) {
+    const input = document.getElementById(`qty-${i}`);
+    input.value = parseInt(input.value || 0) + 1;
+    onQtyChange(i);
+  }
+
+  function decrement(i) {
+    const input = document.getElementById(`qty-${i}`);
+    const val   = parseInt(input.value || 0);
+    if (val > 0) { input.value = val - 1; onQtyChange(i); }
+  }
+
+  function onQtyChange(i) {
+    const val  = parseInt(document.getElementById(`qty-${i}`).value || 0);
+    const item = document.getElementById(`flavor-item-${i}`);
+    item.classList.toggle('has-value', val > 0);
+  }
+
+  // ── Review Modal ──
+  function showReviewModal() {
+    const distributor = document.getElementById('distributorSelect').value;
+    if (!distributor) {
+      showError('الرجاء اختيار الموزع · Please select a distributor');
+      return;
+    }
+
+    const nonZero = [];
+    let total = 0;
+    FLAVORS.forEach((f, i) => {
+      const qty = parseInt(document.getElementById(`qty-${i}`).value || 0);
+      if (qty > 0) { nonZero.push({ name: f, qty }); total += qty; }
+    });
+
+    if (nonZero.length === 0) {
+      showError('الرجاء إدخال كمية واحدة على الأقل · Please enter at least one quantity');
+      return;
+    }
+
+    hideError();
+
+    const notes = document.getElementById('notes').value;
+
+    let html = `
+      <div class="review-section">
+        <div class="review-section-title">معلومات المرتجع · Return Info</div>
+        <div class="review-row"><span class="label">الموزع / Distributor</span><span class="value">${distributor}</span></div>
+      </div>
+      <div class="review-section">
+        <div class="review-section-title">الكميات المرتجعة · Returned Quantities</div>
+        ${nonZero.map(f => `
+          <div class="review-row">
+            <span class="label">${f.name}</span>
+            <span class="value">${f.qty} كرتونة</span>
+          </div>`).join('')}
+      </div>
+      <div class="review-total">
+        <span>الإجمالي · Total</span>
+        <span>${total} كرتونة</span>
+      </div>`;
+
+    if (notes) {
+      html += `
+        <div class="review-section">
+          <div class="review-section-title">ملاحظات · Notes</div>
+          <div style="font-size:14px;color:var(--green-dark)">${notes}</div>
+        </div>`;
+    }
+
+    document.getElementById('modalContent').innerHTML = html;
+    document.getElementById('modalOverlay').className = 'modal-overlay visible';
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').className = 'modal-overlay';
+  }
+
+  // ── Submit ──
+  function submitReturn() {
+    closeModal();
+    setLoading(true, 'جاري الإرسال... / Submitting...');
+
+    const distributor = document.getElementById('distributorSelect').value;
+    const notes        = document.getElementById('notes').value;
+    const qtys         = FLAVORS.map((f, i) => parseInt(document.getElementById(`qty-${i}`).value || 0));
+
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action:      'submitReturn',
+        distributor: distributor,
+        qtys:        qtys,
+        notes:       notes
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
+        if (!data.success) {
+          showError('حدث خطأ · Error: ' + (data.error || 'Unknown error'));
+          return;
+        }
+        onSuccess(data);
+      })
+      .catch(err => {
+        setLoading(false);
+        showError('فشل الاتصال بالخادم · Connection error: ' + err.message);
+      });
+  }
+
+  function onSuccess(result) {
+    document.getElementById('mainForm').style.display = 'none';
+    document.getElementById('successReturnId').textContent = result.returnId;
+    document.getElementById('successMsg').innerHTML =
+      `تم تسجيل مرتجع الموزع <strong>${result.distributor}</strong> بنجاح.<br>
+       إجمالي الكميات المرتجعة: <strong>${result.total} كرتونة</strong><br><br>
+       Return for <strong>${result.distributor}</strong> has been registered.<br>
+       Total returned: <strong>${result.total} cases</strong>`;
+    document.getElementById('successScreen').className = 'success-screen visible';
+  }
+
+  function resetForm() {
+    document.getElementById('mainForm').style.display = 'block';
+    document.getElementById('successScreen').className = 'success-screen';
+    document.getElementById('distributorSelect').value = '';
+    document.getElementById('notes').value = '';
+    resetQtys();
+  }
+
+  function setLoading(isLoading, text) {
+    document.getElementById('loadingOverlay').className = isLoading ? 'loading-overlay visible' : 'loading-overlay';
+    if (text) document.getElementById('loadingText').textContent = text;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.className = 'error-msg visible';
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function hideError() {
+    document.getElementById('errorMsg').className = 'error-msg';
+  }
+</script>
+</body>
+</html>
