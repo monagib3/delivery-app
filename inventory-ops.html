@@ -635,7 +635,7 @@
         <div class="flavor-name">${flavor}</div>
         <div class="stepper">
           <button class="stepper-btn" onclick="decrement(${i})">−</button>
-          <input class="stepper-input" type="number" id="qty-${i}" value="0" min="0" step="1"
+          <input class="stepper-input" type="number" id="qty-${i}" value="0" min="0" step="any"
             oninput="onQtyChange(${i})" onchange="onQtyChange(${i})">
           <button class="stepper-btn" onclick="increment(${i})">+</button>
         </div>`;
