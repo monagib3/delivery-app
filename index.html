@@ -280,7 +280,7 @@
         </div>
         <div class="stepper">
           <button class="stepper-btn" onclick="decrement(${i})">−</button>
-          <input class="stepper-input" type="number" id="qty-${i}" value="0" min="0"
+          <input class="stepper-input" type="number" id="qty-${i}" value="0" min="0" step="any"
             oninput="onQtyChange(${i})" onchange="onQtyChange(${i})">
           <button class="stepper-btn" onclick="increment(${i})">+</button>
         </div>`;
@@ -312,9 +312,9 @@
     });
   }
 
-  function increment(i) { const inp = document.getElementById(`qty-${i}`); inp.value = parseInt(inp.value||0)+1; onQtyChange(i); }
-  function decrement(i) { const inp = document.getElementById(`qty-${i}`); const v = parseInt(inp.value||0); if(v>0){inp.value=v-1; onQtyChange(i);} }
-  function onQtyChange(i) { document.getElementById(`flavor-item-${i}`).classList.toggle('has-value', parseInt(document.getElementById(`qty-${i}`).value||0)>0); }
+  function increment(i) { const inp = document.getElementById(`qty-${i}`); inp.value = parseFloat(inp.value||0)+1; onQtyChange(i); }
+  function decrement(i) { const inp = document.getElementById(`qty-${i}`); const v = parseFloat(inp.value||0); if(v>0){inp.value=v-1; onQtyChange(i);} }
+  function onQtyChange(i) { document.getElementById(`flavor-item-${i}`).classList.toggle('has-value', parseFloat(document.getElementById(`qty-${i}`).value||0)>0); }
 
   function showReviewModal() {
     const orderId = document.getElementById('orderSelect').value;
@@ -322,7 +322,7 @@
     const nonZero = [];
     let total = 0;
     FLAVORS.forEach((f, i) => {
-      const qty = parseInt(document.getElementById(`qty-${i}`).value||0);
+      const qty = parseFloat(document.getElementById(`qty-${i}`).value||0);
       if (qty > 0) { nonZero.push({name:f, qty}); total += qty; }
     });
     if (nonZero.length === 0) { showError('الرجاء إدخال كمية واحدة على الأقل · Please enter at least one quantity'); return; }
@@ -353,7 +353,7 @@
     document.getElementById('loadingOverlay').className = 'loading-overlay visible';
     const sel   = document.getElementById('orderSelect');
     const opt   = sel.options[sel.selectedIndex];
-    const qtys  = FLAVORS.map((f, i) => parseInt(document.getElementById(`qty-${i}`).value||0));
+    const qtys  = FLAVORS.map((f, i) => parseFloat(document.getElementById(`qty-${i}`).value||0));
     const notes = document.getElementById('notes').value;
     try {
       const res  = await fetch(APPS_SCRIPT_URL, {
