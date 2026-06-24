@@ -635,7 +635,7 @@
         <div class="flavor-name">${flavor}</div>
         <div class="stepper">
           <button class="stepper-btn" onclick="decrement(${i})">−</button>
-          <input class="stepper-input" type="number" id="qty-${i}" value="0" min="0"
+          <input class="stepper-input" type="number" id="qty-${i}" value="0" min="0" step="1"
             oninput="onQtyChange(${i})" onchange="onQtyChange(${i})">
           <button class="stepper-btn" onclick="increment(${i})">+</button>
         </div>`;
@@ -652,18 +652,18 @@
 
   function increment(i) {
     const input = document.getElementById(`qty-${i}`);
-    input.value = parseInt(input.value || 0) + 1;
+    input.value = parseFloat(input.value || 0) + 1;
     onQtyChange(i);
   }
 
   function decrement(i) {
     const input = document.getElementById(`qty-${i}`);
-    const val   = parseInt(input.value || 0);
+    const val   = parseFloat(input.value || 0);
     if (val > 0) { input.value = val - 1; onQtyChange(i); }
   }
 
   function onQtyChange(i) {
-    const val  = parseInt(document.getElementById(`qty-${i}`).value || 0);
+    const val  = parseFloat(document.getElementById(`qty-${i}`).value || 0);
     const item = document.getElementById(`flavor-item-${i}`);
     item.classList.toggle('has-value', val > 0);
   }
@@ -700,7 +700,7 @@
     const nonZero = [];
     let total = 0;
     FLAVORS.forEach((f, i) => {
-      const qty = parseInt(document.getElementById(`qty-${i}`).value || 0);
+      const qty = parseFloat(document.getElementById(`qty-${i}`).value || 0);
       if (qty > 0) { nonZero.push({ name: f, qty }); total += qty; }
     });
 
@@ -798,7 +798,7 @@
     closeModal();
     setLoading(true, 'جاري الإرسال... / Submitting...');
 
-    const qtys = FLAVORS.map((f, i) => parseInt(document.getElementById(`qty-${i}`).value || 0));
+    const qtys = FLAVORS.map((f, i) => parseFloat(document.getElementById(`qty-${i}`).value || 0));
     let body;
 
     if (MODE === 'production') {
