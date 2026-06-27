@@ -92,6 +92,41 @@
   .error-title { font-size: 20px; font-weight: 900; color: var(--red); margin-bottom: 8px; }
   .error-body { font-size: 14px; color: var(--ink-soft); line-height: 1.7; }
 
+  /* ── Distributor picker screen ── */
+  .picker-screen { display: none; }
+  .picker-screen.visible { display: block; }
+  .picker-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--ink);
+    text-align: center;
+    margin: 10px 0 24px;
+  }
+  .picker-list { display: flex; flex-direction: column; gap: 12px; }
+  .distributor-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    min-height: 64px;
+    padding: 18px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s, transform 0.15s;
+    animation: fadeUp 0.4s ease both;
+  }
+  .distributor-card:hover {
+    border-color: var(--gold);
+    background: var(--gold-pale);
+    box-shadow: 0 4px 16px rgba(200,150,62,0.15);
+  }
+  .distributor-card:active { transform: translateY(1px); }
+
   /* ── Section label ── */
   .section-label {
     font-size: 11px;
@@ -519,6 +554,14 @@
   <div class="header-distributor hidden" id="distBadge"></div>
 </div>
 
+<!-- Distributor picker screen (shown when no ?dist= param is present) -->
+<div class="container">
+  <div class="picker-screen" id="pickerScreen">
+    <div class="picker-title">اختر الموزع · Select Distributor</div>
+    <div class="picker-list" id="distributorList"></div>
+  </div>
+</div>
+
 <!-- Main content -->
 <div class="container" id="mainForm">
   <div class="inline-error" id="errorMsg"></div>
@@ -631,10 +674,20 @@
   window.onload = function() {
     const params  = new URLSearchParams(window.location.search);
     const distKey = params.get("dist");
+
+    if (distKey === null || distKey === "") {
+      // No ?dist= param at all (or present but empty) — show distributor picker
+      document.getElementById("mainForm").style.display  = "none";
+      document.getElementById("bottomBar").style.display = "none";
+      buildDistributorPicker();
+      document.getElementById("pickerScreen").className  = "picker-screen visible";
+      return;
+    }
+
     distributorName = DISTRIBUTOR_MAP[distKey] || null;
 
     if (!distributorName) {
-      // Hide form, show error screen
+      // dist param present but not a recognized key — show error screen
       document.getElementById("mainForm").style.display   = "none";
       document.getElementById("bottomBar").style.display  = "none";
       document.getElementById("errorScreen").className    = "error-screen visible";
@@ -648,6 +701,24 @@
 
     buildCatalog();
   };
+
+  // ── Build distributor picker ──
+  function buildDistributorPicker() {
+    const list = document.getElementById("distributorList");
+    list.innerHTML = "";
+    Object.keys(DISTRIBUTOR_MAP).forEach((key, i) => {
+      const card = document.createElement("div");
+      card.className = "distributor-card";
+      card.style.animationDelay = `${i * 0.04}s`;
+      card.textContent = DISTRIBUTOR_MAP[key];
+      card.onclick = () => selectDistributor(key);
+      list.appendChild(card);
+    });
+  }
+
+  function selectDistributor(key) {
+    window.location.href = "order.html?dist=" + key;
+  }
 
   // ── Build product catalog ──
   function buildCatalog() {
