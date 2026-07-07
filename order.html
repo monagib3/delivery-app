@@ -593,8 +593,8 @@
 <div class="container">
   <div class="error-screen" id="errorScreen">
     <div class="error-icon">⚠️</div>
-    <div class="error-title">رابط غير صالح · Invalid Link</div>
-    <div class="error-body">
+    <div class="error-title" id="errorTitle">رابط غير صالح · Invalid Link</div>
+    <div class="error-body" id="errorBody">
       هذا الرابط غير مرتبط بأي موزع معروف.<br>
       يرجى التواصل مع فريق بدر الدين للحصول على رابطك الصحيح.<br><br>
       This link does not match any known distributor.<br>
@@ -638,12 +638,6 @@
   // ── CONFIGURATION ──
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkDx5nDV73amoXgEb34h-PfPHy95DMcUsyqtIhwv5EXorz6vQXYws0S5Ht8SP_6NBn_w/exec";
 
-  // ── Distributor map: URL key → exact name in Orders sheet ──
-  const DISTRIBUTOR_MAP = {
-    "family-alex":   "Family Alex",
-    "cairo-office":  "Cairo Office"
-  };
-
   // ── Flavor list (must match CONFIG.FLAVORS order in Apps Script) ──
   const FLAVORS = [
     "Mango", "Blueberry", "Strawberry", "Pineapple", "Lemon-Mint",
@@ -669,11 +663,28 @@
   };
 
   let distributorName = null;
+  let distributors = [];  // [{slug, name}, ...] fetched from backend
 
   // ── Init ──
-  window.onload = function() {
+  window.onload = async function() {
     const params  = new URLSearchParams(window.location.search);
     const distKey = params.get("dist");
+
+    try {
+      const res  = await fetch(`${APPS_SCRIPT_URL}?action=getDistributors`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to load distributors");
+      distributors = data.distributors;
+    } catch (err) {
+      document.getElementById("mainForm").style.display  = "none";
+      document.getElementById("bottomBar").style.display = "none";
+      document.getElementById("errorTitle").textContent  = "تعذر الاتصال بالخادم · Connection Error";
+      document.getElementById("errorBody").innerHTML     =
+        "تعذر تحميل بيانات الموزعين. يرجى التحقق من الاتصال بالإنترنت والمحاولة مرة أخرى.<br><br>" +
+        "Could not load distributor data. Please check your connection and try again.";
+      document.getElementById("errorScreen").className   = "error-screen visible";
+      return;
+    }
 
     if (distKey === null || distKey === "") {
       // No ?dist= param at all (or present but empty) — show distributor picker
@@ -684,12 +695,19 @@
       return;
     }
 
-    distributorName = DISTRIBUTOR_MAP[distKey] || null;
+    const match = distributors.find(d => d.slug === distKey);
+    distributorName = match ? match.name : null;
 
     if (!distributorName) {
       // dist param present but not a recognized key — show error screen
       document.getElementById("mainForm").style.display   = "none";
       document.getElementById("bottomBar").style.display  = "none";
+      document.getElementById("errorTitle").textContent   = "رابط غير صالح · Invalid Link";
+      document.getElementById("errorBody").innerHTML      =
+        "هذا الرابط غير مرتبط بأي موزع معروف.<br>" +
+        "يرجى التواصل مع فريق بدر الدين للحصول على رابطك الصحيح.<br><br>" +
+        "This link does not match any known distributor.<br>" +
+        "Please contact the Badr El-Din team for your correct link.";
       document.getElementById("errorScreen").className    = "error-screen visible";
       return;
     }
@@ -706,12 +724,12 @@
   function buildDistributorPicker() {
     const list = document.getElementById("distributorList");
     list.innerHTML = "";
-    Object.keys(DISTRIBUTOR_MAP).forEach((key, i) => {
+    distributors.forEach((d, i) => {
       const card = document.createElement("div");
       card.className = "distributor-card";
       card.style.animationDelay = `${i * 0.04}s`;
-      card.textContent = DISTRIBUTOR_MAP[key];
-      card.onclick = () => selectDistributor(key);
+      card.textContent = d.name;
+      card.onclick = () => selectDistributor(d.slug);
       list.appendChild(card);
     });
   }
