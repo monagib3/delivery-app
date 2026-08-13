@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DB Quality Audit — Badr El-Din System</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f2f5;
+    padding: 32px 24px;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  h1 { font-size: 20px; font-weight: 800; margin-bottom: 4px; color: #1a1a2e; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 28px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    border-left: 5px solid #ccc;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  }
+  .card.green  { border-color: #2d9a60; }
+  .card.yellow { border-color: #c9981a; }
+  .card.orange { border-color: #e07b39; }
+  .card.red    { border-color: #c0392b; }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  .card-title { font-size: 13px; font-weight: 700; color: #1a1a2e; line-height: 1.4; }
+
+  .badge {
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .badge.green  { background: #d4f7e7; color: #1a6b40; }
+  .badge.yellow { background: #fef3cc; color: #7a5c00; }
+  .badge.orange { background: #fde8d8; color: #8a3a0a; }
+  .badge.red    { background: #fde8e6; color: #8b1a1a; }
+
+  .card-body {
+    font-size: 12px; color: #555; line-height: 1.7;
+  }
+  .card-body code {
+    background: #f0f0f0; padding: 1px 5px;
+    border-radius: 4px; font-size: 11px; color: #333;
+  }
+  .card-body strong { color: #1a1a2e; }
+
+  .bar-track {
+    background: #eee; border-radius: 4px;
+    height: 6px; margin-top: 12px;
+  }
+  .bar-fill { height: 6px; border-radius: 4px; transition: width 0.6s ease; }
+  .bar-fill.green  { background: #2d9a60; }
+  .bar-fill.yellow { background: #c9981a; }
+  .bar-fill.orange { background: #e07b39; }
+  .bar-fill.red    { background: #c0392b; }
+
+  /* Summary */
+  .summary {
+    background: white;
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .score-circle {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: conic-gradient(#c9981a 0% 60%, #eee 60% 100%);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .score-inner {
+    width: 68px; height: 68px;
+    background: white; border-radius: 50%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .score-num { font-size: 24px; font-weight: 800; color: #c9981a; line-height: 1; }
+  .score-denom { font-size: 11px; color: #aaa; }
+
+  .verdict { flex: 1; min-width: 220px; }
+  .verdict-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+  .verdict-body { font-size: 12px; color: #555; line-height: 1.75; }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+  }
+  .legend-dot.green  { background: #2d9a60; }
+  .legend-dot.yellow { background: #c9981a; }
+  .legend-dot.orange { background: #e07b39; }
+  .legend-dot.red    { background: #c0392b; }
+
+  /* Action table */
+  .action-box {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    margin-top: 14px;
+  }
+  .action-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    text-align: left; padding: 8px 10px;
+    background: #f5f5f5; color: #666;
+    font-weight: 600; font-size: 11px;
+    border-bottom: 1px solid #eee;
+  }
+  td {
+    padding: 9px 10px; border-bottom: 1px solid #f0f0f0;
+    vertical-align: top; color: #444; line-height: 1.5;
+  }
+  tr:last-child td { border-bottom: none; }
+  .dot {
+    display: inline-block; width: 9px; height: 9px;
+    border-radius: 50%; margin-right: 5px; vertical-align: middle;
+  }
+  .dot.green  { background: #2d9a60; }
+  .dot.yellow { background: #c9981a; }
+  .dot.orange { background: #e07b39; }
+</style>
+</head>
+<body>
+
+<h1>Database Quality Audit — Badr El-Din System</h1>
+<p class="subtitle">Honest assessment across 8 dimensions · June 2026</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot green"></div> Strong</div>
+  <div class="legend-item"><div class="legend-dot yellow"></div> Partial</div>
+  <div class="legend-item"><div class="legend-dot orange"></div> Weak</div>
+  <div class="legend-item"><div class="legend-dot red"></div> Missing</div>
+</div>
+
+<div class="grid">
+
+  <div class="card green">
+    <div class="card-header">
+      <div class="card-title">Append-Only Transactional Ledger</div>
+      <span class="badge green">Strong</span>
+    </div>
+    <div class="card-body">
+      Orders, Deliveries, Returns, Productions, and Inventory Movements are all <strong>append-only</strong>. No row is ever overwritten — each event is its own immutable record. This is the correct pattern for a transaction log and genuinely hard to get right. You got it right from the start.
+    </div>
+    <div class="bar-track"><div class="bar-fill green" style="width:90%"></div></div>
+  </div>
+
+  <div class="card green">
+    <div class="card-header">
+      <div class="card-title">Sequential IDs with Concurrency Safety</div>
+      <span class="badge green">Strong</span>
+    </div>
+    <div class="card-body">
+      All ID series (ORD, DEL, RET, PRD, WOF) use <strong>Script Properties + LockService</strong> — not row-count-based generation. This correctly handles concurrent submissions. Counting rows fails the moment two users submit at the same time.
+    </div>
+    <div class="bar-track"><div class="bar-fill green" style="width:88%"></div></div>
+  </div>
+
+  <div class="card green">
+    <div class="card-header">
+      <div class="card-title">No Pre-filled Formulas in Transactional Sheets</div>
+      <span class="badge green">Strong</span>
+    </div>
+    <div class="card-body">
+      A common Google Sheets trap that silently corrupts <code>getLastRow()</code>. You explicitly avoid it everywhere. All values in transactional sheets are <strong>static, written by code</strong>. Formulas only live in KPI/Summary/Balance sheets where they belong.
+    </div>
+    <div class="bar-track"><div class="bar-fill green" style="width:92%"></div></div>
+  </div>
+
+  <div class="card green">
+    <div class="card-header">
+      <div class="card-title">Non-Blocking Sync with Error Logging</div>
+      <span class="badge green">Strong</span>
+    </div>
+    <div class="card-body">
+      Inventory writes are wrapped in try/catch. A failed inventory sync <strong>never blocks a delivery confirmation</strong>. Failures go to Sync Errors sheet + WhatsApp alert. This is correct distributed-system thinking for a constrained environment.
+    </div>
+    <div class="bar-track"><div class="bar-fill green" style="width:85%"></div></div>
+  </div>
+
+  <div class="card yellow">
+    <div class="card-header">
+      <div class="card-title">Single Source of Truth for Reference Data</div>
+      <span class="badge yellow">Partial</span>
+    </div>
+    <div class="card-body">
+      <code>CONFIG.DISTRIBUTORS</code> is the intended master — and most of the backend reads from it correctly. <strong>But</strong> <code>order.html</code> has a hardcoded <code>DISTRIBUTOR_MAP</code> that already diverged: "Family - Alex" vs "Family Alex". The slug→name mapping must come from the backend, not be hardcoded in the frontend.
+    </div>
+    <div class="bar-track"><div class="bar-fill yellow" style="width:58%"></div></div>
+  </div>
+
+  <div class="card yellow">
+    <div class="card-header">
+      <div class="card-title">Entity Referencing (FK-style integrity)</div>
+      <span class="badge yellow">Partial</span>
+    </div>
+    <div class="card-body">
+      Deliveries reference Orders via Order ID — good. But <strong>nothing enforces</strong> that the Order ID actually exists in Orders. Distributor names in Deliveries/Returns are free-text strings, not validated against the canonical list at write time. In a real DB these are foreign key constraints.
+    </div>
+    <div class="bar-track"><div class="bar-fill yellow" style="width:50%"></div></div>
+  </div>
+
+  <div class="card orange">
+    <div class="card-header">
+      <div class="card-title">Naming Conventions</div>
+      <span class="badge orange">Weak</span>
+    </div>
+    <div class="card-body">
+      No enforced naming standard exists. Three active inconsistencies: (1) "Family - Alex" vs "Family Alex" across files, (2) sheet tab names with <strong>leading spaces + emoji prefixes</strong> requiring fuzzy lookup workarounds everywhere, (3) no documented slug convention for URL params. A real DB has one canonical string per entity, enforced at schema level.
+    </div>
+    <div class="bar-track"><div class="bar-fill orange" style="width:32%"></div></div>
+  </div>
+
+  <div class="card orange">
+    <div class="card-header">
+      <div class="card-title">Schema Normalization (wide vs. narrow tables)</div>
+      <span class="badge orange">Weak</span>
+    </div>
+    <div class="card-body">
+      Every transactional sheet has <strong>13 flavor columns</strong> — one per flavor. In a proper DB you'd have a narrow table: (OrderID, Flavor, Qty) — one row per flavor per order. Your Inventory Movements sheet already does this correctly. Orders, Deliveries, Returns, Productions do not. Adding a 14th flavor means a schema change across every sheet.
+    </div>
+    <div class="bar-track"><div class="bar-fill orange" style="width:28%"></div></div>
+  </div>
+
+</div>
+
+<!-- Overall Score -->
+<div class="summary">
+  <div class="score-circle">
+    <div class="score-inner">
+      <div class="score-num">6</div>
+      <div class="score-denom">out of 10</div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div class="verdict-title">Honest Verdict</div>
+    <div class="verdict-body">
+      The system has genuinely strong foundations where it matters most — immutability, concurrency, and error handling are all correct and not trivial to get right. The weaknesses are architectural (wide tables, no FK enforcement, naming drift) and are typical of systems that grew organically.<br><br>
+      <strong>The naming issue is fixable now at low cost.</strong> The wide-table normalization is the deepest structural gap, but refactoring it breaks every formula in the system — not worth doing while you have live operational data accumulating. Know the gap; don't act on it yet.
+    </div>
+  </div>
+</div>
+
+<!-- Action Plan -->
+<div class="action-box">
+  <div class="action-title">Recommended Action by Priority</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Priority</th>
+        <th>Issue</th>
+        <th>Action</th>
+        <th>When</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="dot orange"></span> High</td>
+        <td>Naming drift ("Family - Alex" vs "Family Alex")</td>
+        <td>Pick one canonical string. Fix CONFIG + order.html + any existing sheet data</td>
+        <td>Now — before more live rows accumulate</td>
+      </tr>
+      <tr>
+        <td><span class="dot orange"></span> High</td>
+        <td>Hardcoded DISTRIBUTOR_MAP in order.html</td>
+        <td>Replace with a backend fetch — add <code>slug</code> field to CONFIG.DISTRIBUTORS, expose via <code>getOrderContext</code></td>
+        <td>Now — already causing drift</td>
+      </tr>
+      <tr>
+        <td><span class="dot yellow"></span> Medium</td>
+        <td>No write-time distributor name validation</td>
+        <td>Add a lookup check in submitDelivery/submitReturn before writing — reject if distributor not in CONFIG</td>
+        <td>Next sprint — low effort, prevents phantom records</td>
+      </tr>
+      <tr>
+        <td><span class="dot yellow"></span> Medium</td>
+        <td>Sheet tab naming (leading spaces + emoji)</td>
+        <td>Document the convention explicitly in CLAUDE.md. Don't rename now — too many formula dependencies</td>
+        <td>Document now; refactor only on next full rebuild</td>
+      </tr>
+      <tr>
+        <td><span class="dot green"></span> Low / Defer</td>
+        <td>Wide tables (13 flavor columns per sheet)</td>
+        <td>Accept current schema for now. Revisit only if a 14th flavor is added or a full migration becomes necessary</td>
+        <td>Defer — cost outweighs benefit with live data</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>الصفحة الرئيسية | Badr El-Din</title>
+<!-- PWA: Makes the app installable on mobile home screen -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="الرئيسية | بدر الدين">
+<meta name="application-name" content="الرئيسية | بدر الدين">
+<meta name="theme-color" content="#1a3a2a">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark:  #1a3a2a;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --gold-light:  #fef3e2;
+    --white:       #fafafa;
+    --grey-light:  #f0f4f1;
+    --grey-mid:    #c8d8cc;
+    --grey-text:   #5a6b61;
+    --danger:      #e63946;
+    --shadow:      0 4px 24px rgba(26,58,42,0.10);
+    --radius:      16px;
+    --radius-sm:   10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--grey-light);
+    color: var(--green-dark);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+    padding: 24px 20px 20px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(26,58,42,0.25);
+  }
+  .header-logo { font-size: 11px; letter-spacing: 3px; color: var(--green-light); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+  .header-title { font-size: 22px; font-weight: 900; color: var(--white); line-height: 1.2; }
+  .header-subtitle { font-size: 12px; color: var(--green-pale); margin-top: 2px; font-weight: 400; }
+
+  .container { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+
+  .launcher-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .launcher-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(82,183,136,0.12);
+    padding: 28px 14px 22px;
+    text-align: center;
+    text-decoration: none;
+    color: var(--green-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    animation: fadeUp 0.4s ease both;
+  }
+  .launcher-card:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 12px rgba(26,58,42,0.14);
+    border-color: var(--green-light);
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .launcher-icon {
+    font-size: 36px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .launcher-label-ar {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--green-dark);
+  }
+  .launcher-label-en {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--grey-text);
+    font-family: 'DM Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">Badr El-Din Farms · بدر الدين</div>
+  <div class="header-title">الصفحة الرئيسية</div>
+  <div class="header-subtitle">Operations Home</div>
+</div>
+
+<div class="container">
+  <div class="launcher-grid">
+
+    <a class="launcher-card" href="order.html" style="animation-delay:0.05s">
+      <div class="launcher-icon">🧾</div>
+      <div class="launcher-label-ar">طلب جديد</div>
+      <div class="launcher-label-en">New Order</div>
+    </a>
+
+    <a class="launcher-card" href="index.html" style="animation-delay:0.10s">
+      <div class="launcher-icon">🚚</div>
+      <div class="launcher-label-ar">تسجيل تسليم</div>
+      <div class="launcher-label-en">Log Delivery</div>
+    </a>
+
+    <a class="launcher-card" href="returns.html" style="animation-delay:0.15s">
+      <div class="launcher-icon">↩️</div>
+      <div class="launcher-label-ar">تسجيل مرتجع</div>
+      <div class="launcher-label-en">Log Return</div>
+    </a>
+
+    <a class="launcher-card" href="inventory-ops.html" style="animation-delay:0.20s">
+      <div class="launcher-icon">📦</div>
+      <div class="launcher-label-ar">عمليات المخزون</div>
+      <div class="launcher-label-en">Inventory Ops</div>
+    </a>
+
+  </div>
+</div>
+
+</body>
+</html>

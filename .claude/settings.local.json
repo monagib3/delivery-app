@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n 'Inventory Movements\\\\|getRange\\([0-9], [4-9]\\\\|$E$\\\\|$F$\\\\|$G$\\\\|$H$' Code.js Router.js DeliveryBackend.js ReturnsBackend.js OrderBackend.js Inventory.js)"
+    ]
+  }
+}
