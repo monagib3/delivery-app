@@ -278,3 +278,9 @@ Read-only reporting page for the business manager — stock levels, per-distribu
 | Production efficiency metric — Cases Produced/Delivered shown as separate columns for now; define and add ratio metric once 3-6 months of history exists | Deferred |
 | Unify Reorder_Points sheet with Inventory Balance hardcoded thresholds — two sources of truth for the same concept | Not started |
 | BigQuery + Connected Sheets migration — replace IMPORTRANGE with BigQuery as reporting layer foundation; enables Looker Studio executive dashboard | Long-term |
+| KPI Dashboard charts and filters | Not started |
+| `onEdit` trigger → distributor WhatsApp notification on status change | Placeholder `onStatusChange()` exists in `Code.js`, not wired to a trigger |
+| Per-distributor pre-filled Google Form links | Not started |
+| Hide "Form Responses 1" sheet | Not started |
+| Home screen icon (PWA) for GitHub Pages frontends | Not started |
+| Populate real Phone/CallMeBot_ApiKey values in `🏢 Distributors` sheet | `CONFIG.DISTRIBUTORS` is no longer the live source (as of DB Migration Phase 1) — the sheet is. WhatsApp distributor notifications depend on these values being accurate there. |

@@ -1,6 +1,6 @@
 # Badr El-Din Farms — Supply Chain System Documentation
 
-**Last updated:** July 21, 2026
+**Last updated:** August 19, 2026
 **Maintained by:** Digital Transformation Manager
 **System owner context:** Badr El-Din Farms for Agri-Industries, Egypt — Dots basil seed drink line (13 flavors)
 
@@ -16,7 +16,7 @@ A near-zero-cost ERP-style system built on Google Workspace, replacing manual Wh
 - KPI reporting
 - Automated WhatsApp notifications
 
-Two spreadsheets, one Apps Script project, two GitHub Pages frontends.
+Two spreadsheets, one Apps Script project, six GitHub Pages frontends: `order.html` (distributor order intake), `index.html` (internal delivery logging), `returns.html` (internal returns logging), `inventory-ops.html` (internal production/write-off logging), `home.html` (internal launcher), `dashboard.html` (internal read-only reporting).
 
 ---
 
@@ -39,16 +39,21 @@ Two spreadsheets, one Apps Script project, two GitHub Pages frontends.
 │  Inventory.gs       → Inventory spreadsheet + movements     │
 │  ReturnsBackend.gs  → submitReturn()                        │
 │  ProductionBackend.gs → submitProduction()                   │
+│  DashboardBackend.js → getDashboardData()                    │
 └──────────┬───────────────────────────┬────────────────────┘
            │                            │
            ▼                            ▼
-┌─────────────────────────┐   ┌─────────────────────────────┐
-│ Badr El-Din Order Tracker│   │ Badr El-Din Inventory Tracker│
-│ (main spreadsheet)        │   │ (separate spreadsheet,       │
-│ Orders, Deliveries,       │   │  separate access control)    │
-│ KPI Dashboard, Summary,   │   │ Lists, Inventory Movements,  │
-│ Sync Errors, Instructions │   │ Inventory Balance             │
-└───────────────────────────┘   └───────────────────────────────┘
+┌───────────────────────────────┐   ┌─────────────────────────────┐
+│ Badr El-Din Order Tracker       │   │ Badr El-Din Inventory Tracker│
+│ (main spreadsheet)               │   │ (separate spreadsheet,       │
+│ Orders/Order_Lines,               │   │  separate access control)    │
+│ Deliveries/Delivery_Lines,        │   │ Lists, Inventory Movements,  │
+│ Returns/Return_Lines,             │   │ Inventory Balance             │
+│ Productions/Production_Lines,     │   │                               │
+│ KPI Dashboard, Per-Distributor    │   │                               │
+│ Summary, Per-Flavor Breakdown,    │   │                               │
+│ Sync Errors, Instructions         │   │                               │
+└───────────────────────────────────┘   └───────────────────────────────┘
 ```
 
 **Why two spreadsheets:** Inventory access needs to be controlled independently from Orders/Deliveries/KPI access — different people may need to see stock levels vs. order/fulfillment data. Apps Script can read/write across both from the same project; IMPORTRANGE is used by the 🌿 Per-Flavor Breakdown sheet to pull Current Stock from the Inventory Tracker. Authorization is one-time per spreadsheet pair and persists.
@@ -61,11 +66,12 @@ Two spreadsheets, one Apps Script project, two GitHub Pages frontends.
 |---|---|
 | `Code.gs` | `CONFIG` object, sheet/form setup (`setupEntireSystem`), `onFormSubmit` trigger, `_sendWhatsApp` helper, `_logSyncError`, Sync Errors sheet builder, Config sheet builders (`_buildConfigSheets`), shared helpers (`_getSheet`, `_getConfig`, `columnLetter`, `_removeDefaultSheet`) |
 | `Router.gs` | Single `doGet`/`doPost` entry point. Routes by `action` parameter to the correct backend function. No business logic lives here. |
-| `OrderBackend.gs` | `submitOrder(payload)` — writes a new row to Orders, mirrors `onFormSubmit` logic, sends WhatsApp confirmations. |
-| `DeliveryBackend.gs` | `getOpenOrders()` / `_getOpenOrders(ss)`, `submitDelivery(payload)`, `_updateOrderStatus`, `_notifyDelivery`. Calls `_logDeliveryOutMovements` (Inventory.gs) after logging a delivery. |
+| `OrderBackend.gs` | `submitOrder(payload)` — writes a header row to `📋 Orders` and line rows to `📋 Order_Lines` (narrow schema), generates sequential `ORD-XXX`/`OL-XXX` IDs via `_nextSequentialId` (Code.gs), sends WhatsApp confirmations. |
+| `DeliveryBackend.gs` | `getOpenOrders()` / `_getOpenOrders(ss)`, `submitDelivery(payload)` — writes a header row to `🚚 Deliveries` and line rows to `🚚 Delivery_Lines` (narrow schema), generates sequential `DEL-XXX`/`DL-XXX` IDs via `_nextSequentialId`. `_getOpenOrders`/`_updateOrderStatus` read and join quantities from the narrow line tables (via a `Flavor_Name → Flavor_ID` map built at runtime from `🌿 Flavors`), not wide column offsets. Calls `_logDeliveryOutMovements` (Inventory.gs) after logging a delivery. |
 | `Inventory.gs` | Inventory spreadsheet creation/access (`_getInventorySpreadsheet`), `_buildListsSheet`, `_buildInventoryMovementsSheet`, `_buildInventoryBalanceSheet`, `setupInventorySystem`, `_logDeliveryOutMovements`, `_logReturnInMovements`, `_logProductionInMovements`, `_logWriteOffMovements`. |
 | `ReturnsBackend.gs` | `submitReturn(payload)` — writes a header row to `↩️ Returns` and line rows to `↩️ Return_Lines` (Phase 2 narrow schema), generates sequential `RET-XXX`/`RL-XXX` IDs via `_nextSequentialId` (Code.gs), sends a team-only WhatsApp notification (`_notifyReturn`), then calls `_logReturnInMovements` (Inventory.gs) non-blocking. |
 | `ProductionBackend.gs` | `submitProduction(payload)` — writes a header row to `🌱 Productions` and line rows to `🌱 Production_Lines` (Phase 2 narrow schema), generates sequential `PRD-XXX`/`PL-XXX` IDs via `_nextSequentialId` (Code.gs), sends a team-only WhatsApp notification (`_notifyProduction`), then calls `_logProductionInMovements` (Inventory.gs) non-blocking. |
+| `DashboardBackend.js` | `getDashboardData()` / `_getDashboardData(ss)` — read-only Business Manager Dashboard data. Reads `🌿 Per-Flavor Breakdown` and `📈 Per-Distributor Summary` cells directly (no recompute); extends `_getOpenOrders(ss)` (reused from `DeliveryBackend.gs`) with cases outstanding from `🚚 Delivery_Lines` and a timezone-safe `_daysOpen()` day count. No try/catch — matches the existing GET-read convention (only mutating POST actions wrap themselves). |
 
 **Shared global scope:** All `.gs` files in one Apps Script project share scope — no imports needed. `CONFIG`, `_getSheet`, `_sendWhatsApp`, `_logSyncError`, `_removeDefaultSheet` are all callable from any file.
 
@@ -79,7 +85,8 @@ Two spreadsheets, one Apps Script project, two GitHub Pages frontends.
 | `index.html` (mirrors `DeliveryApp.html`) | GitHub Pages (`https://monagib3.github.io/delivery-app/`) | Internal delivery team | `doGet action=getOrders`, `doPost action=submitDelivery` |
 | `DeliveryApp.html` | Apps Script-hosted (`doGet` fallback) | Desktop fallback only | Same as index.html, via `google.script.run` instead of fetch |
 | `inventory-ops.html` | GitHub Pages (`https://monagib3.github.io/delivery-app/inventory-ops.html`) | Internal team only (toggle: Production In / Write-off) | `doGet action=getProductionContext`, `doPost action=submitProduction`, `doPost action=submitWriteOff` |
-| `home.html` | GitHub Pages (`https://monagib3.github.io/delivery-app/home.html`) | Internal ops team (launcher/home page) | None — static links only to `order.html`, `index.html`, `returns.html`, `inventory-ops.html`; no backend calls |
+| `home.html` | GitHub Pages (`https://monagib3.github.io/delivery-app/home.html`) | Internal ops team (launcher/home page) | None — static links only to `order.html`, `index.html`, `returns.html`, `inventory-ops.html`, `dashboard.html`; no backend calls |
+| `dashboard.html` | GitHub Pages (`https://monagib3.github.io/delivery-app/dashboard.html`) | Internal team only (read-only reporting) | `doGet action=getDashboardData` |
 
 **Distributor link format:** `order.html?dist=family-alex` / `order.html?dist=cairo-office` — mapped to full names via a `?action=getDistributors` fetch to `Router.gs` on page load (reads the `🏢 Distributors` sheet via `_getConfig()`), not a hardcoded map in the frontend.
 
@@ -99,8 +106,9 @@ Two spreadsheets, one Apps Script project, two GitHub Pages frontends.
 | `↩️ Return_Lines` | Static, trigger-written | One row per non-zero flavor per return. Columns: Line_ID (RL-XXX), Return_ID (FK), Flavor_ID (FK), Flavor_Name, Qty_Returned. |
 | `🌱 Productions` | Static, trigger-written | Header row per production batch. Columns: Production_ID, Date, Lot_Number, Total_Produced, Notes. Single header row — flavor-level detail lives in `🌱 Production_Lines`. |
 | `🌱 Production_Lines` | Static, trigger-written | One row per non-zero flavor per production batch. Columns: Line_ID (PL-XXX), Production_ID (FK), Flavor_ID (FK), Flavor_Name, Qty_Produced. |
-| ` KPI Dashboard` | Formula-driven | Fill rate %, days to deliver, per-flavor delivered vs ordered. Pulls from Orders + Deliveries via row-mirrored formulas (rows 9–508). Color-coded: green ≥95%, yellow 70–94%, red <70%. |
-| ` Summary` | Formula-driven | Per-distributor fill rate, avg delivery time, pending orders. Pulls from KPI Dashboard. |
+| `📊 KPI Dashboard` | Formula-driven | 5 summary cards (Total Orders, Total Deliveries, Overall Fill Rate %, Pending/Partial count, Avg Fulfillment Cycle Time), built via `_buildKPIDashboardCards`. Hidden helper block cols X:Z computes per-order cycle time — reused by Per-Distributor Summary's `AVERAGEIFS`. |
+| `📈 Per-Distributor Summary` | Formula-driven | One row per active distributor (sourced from `_getConfig()`): Orders Received, Cases Ordered, Cases Delivered, Fill Rate %, Avg Cycle Time, Pending Orders. `SUMPRODUCT`+`VLOOKUP` joins `Order_Lines`/`Delivery_Lines` to Distributors. Built via `_buildDistributorSummarySheet` (renamed from the old ` Summary` tab). |
+| `🌿 Per-Flavor Breakdown` | Formula-driven | One row per active flavor (sourced from `🌿 Flavors`): Cases Ordered, Delivered, Returned, Fill Rate %, Current Stock (via one `IMPORTRANGE` from the Inventory Tracker, staged in hidden cols K:Q), Below Reorder Threshold (reads `📉 Reorder_Points`, `ISNUMBER`-guarded), Cases Produced. Built via `_buildFlavorBreakdownSheet`. First run requires a one-time manual "Allow access" click in the Sheets UI to authorize the `IMPORTRANGE`. |
 | ` Sync Errors` | Static, append-only | Cross-system failure log (currently: Inventory Movements write failures during `submitDelivery`). Columns: Timestamp, Function, Error, Order ID, Distributor, Details. Triggers a WhatsApp alert to the team on each entry. |
 | ` Instructions` | Static reference | Human-readable usage guide for the team. |
 | `Form Responses 1` | Auto-created by Google Forms | Passive fallback intake channel. Hidden/ignored — not yet hidden in UI (pending task). |
@@ -188,6 +196,7 @@ When a delivery is submitted via `submitDelivery(payload)` in `DeliveryBackend.g
 | Per-distributor pre-filled Google Form links | Not started |
 | Home screen icon for GitHub Pages delivery app | Not started |
 | Hide "Form Responses 1" sheet | Not started |
+| Populate real Phone/CallMeBot_ApiKey values in `🏢 Distributors` sheet | `CONFIG.DISTRIBUTORS` is no longer the live source (as of DB Migration Phase 1) — the sheet is. WhatsApp distributor notifications depend on these values being accurate there. |
 | **Returns handling** | Complete — all 5 sub-tasks done (Returns sheet builder, `ReturnsBackend.gs` + `_logReturnInMovements`, Router wiring for `getReturnContext`/`submitReturn`, `returns.html` frontend, end-to-end test). See `CLAUDE.md` §7. |
 | **Production In and Write-off transactions** | Complete — all 7 sub-tasks done (` Productions` sheet builder, `ProductionBackend.gs` with `submitProduction`, `_logProductionInMovements`/`_logWriteOffMovements` in `Inventory.gs`, Router wiring for `getProductionContext`/`submitProduction`/`submitWriteOff`, the `inventory-ops.html` frontend, and the end-to-end test). See `CLAUDE.md` §7B. |
 | **Decimal quantity support across frontends** | Complete — `index.html`, `returns.html`, and `inventory-ops.html` all use `step="any"` on qty stepper inputs and `parseFloat` for qty value parsing. `DeliveryApp.html` (Apps Script-hosted mirror of `index.html`) updated to match. |
@@ -203,7 +212,7 @@ When a delivery is submitted via `submitDelivery(payload)` in `DeliveryBackend.g
 | Production/quality system integration | Long-term, not scoped |
 | Centralized executive dashboard | Long-term, not scoped |
 | **DB Migration — Phase 1: Config Layer** | Complete — six Config sheets built (`⚙️ Products`, `🌿 Flavors`, `🏢 Distributors`, `🔗 Distributor_Products`, `📱 Team_Contacts`, `📉 Reorder_Points`), `_getConfig()` added to `Code.gs`, the live API path (Router.gs/OrderBackend.gs/DeliveryBackend.gs/ReturnsBackend.gs/ProductionBackend.gs + the four `_log*Movements` functions in Inventory.gs) migrated off `CONFIG.FLAVORS`/`CONFIG.DISTRIBUTORS`, `?action=getDistributors` added, hardcoded `DISTRIBUTOR_MAP` removed from `order.html`. See `CLAUDE.md` §7E. |
-| **DB Migration — Phase 2: Normalize transactional tables** | In Progress — Sub-task 2.1 complete (sheets built, archives created). Sub-task 2.2 complete (historical data migrated — 2 Orders/22 lines, 2 Deliveries/21 lines, 1 Return/1 line, 2 Productions/12 lines). Sub-task 2.3 complete (`OrderBackend.js`/`DeliveryBackend.js` rewritten to narrow schema, `ORD_COUNTER`/`DEL_COUNTER` seeded, deployed as Version 16). Sub-task 2.4 complete (`ReturnsBackend.js`/`ProductionBackend.js` rewritten to narrow schema, `RET_COUNTER`/`RL_COUNTER`/`PL_COUNTER` seeded, `PRD_COUNTER` left untouched, deployed as Version 17). Complete — Sub-task 2.5 was absorbed into Sub-task 2.4. |
+| **DB Migration — Phase 2: Normalize transactional tables** | Complete — Sub-task 2.1 complete (sheets built, archives created). Sub-task 2.2 complete (historical data migrated — 2 Orders/22 lines, 2 Deliveries/21 lines, 1 Return/1 line, 2 Productions/12 lines). Sub-task 2.3 complete (`OrderBackend.js`/`DeliveryBackend.js` rewritten to narrow schema, `ORD_COUNTER`/`DEL_COUNTER` seeded, deployed as Version 16). Sub-task 2.4 complete (`ReturnsBackend.js`/`ProductionBackend.js` rewritten to narrow schema, `RET_COUNTER`/`RL_COUNTER`/`PL_COUNTER` seeded, `PRD_COUNTER` left untouched, deployed as Version 17). Complete — Sub-task 2.5 was absorbed into Sub-task 2.4. |
 | **Phase 2, Sub-task 2.1 — New Sheet Structure Built** | Complete — Eight narrow sheets created (four header + four lines), four wide sheets archived as `_ARCHIVE_` prefixed grey tabs. Tab name verification performed manually before running — confirmed actual tab names were `📋 Orders`, `🚚 Deliveries`, `Returns`, `Productions` (no leading spaces on Returns/Productions despite earlier convention). Archive keywords corrected accordingly. Runner executed successfully, all 12 operations logged clean. |
 | **Phase 2, Sub-task 2.2 — Historical Data Migration Complete** | `_migrateHistoricalData` ran successfully. Four `_ARCHIVE_` sheets exploded into narrow header + lines format. Counts: 2 Orders (22 lines), 2 Deliveries (21 lines), 1 Return (1 line), 2 Productions (12 lines). All eight narrow sheets verified. Both temporary functions deleted per project convention. "Family Alex" naming on historical Orders/Deliveries carried through correctly — pre-existing data issue, not a migration bug. |
 | **Phase 2, Sub-task 2.3 — OrderBackend.js / DeliveryBackend.js Rewritten to Narrow Schema** | Complete — `submitOrder()` now writes a header row to `📋 Orders` and line rows to `📋 Order_Lines`; `submitDelivery()` now writes a header row to `🚚 Deliveries` and line rows to `🚚 Delivery_Lines`. `_getOpenOrders()` and `_updateOrderStatus()` rewritten to read qtys from the narrow line tables (joined via a `Flavor_Name → Flavor_ID` map built at runtime from `🌿 Flavors`) instead of wide column offsets. Order_ID/Delivery_ID generation migrated from `getLastRow()` counting to `_nextSequentialId()`, backed by two new Script Properties counters, `ORD_COUNTER`/`DEL_COUNTER`, added to the counter registry in `Code.gs`. Counters seeded to 2 (matching the 2 migrated historical Orders/Deliveries from Sub-task 2.2) via a temporary `_initOrderDelCounters()` wrapper — run once manually via the Apps Script editor, then deleted per project convention. Deployed as Version 16. |
