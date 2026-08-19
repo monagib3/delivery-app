@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>لوحة التحكم | Badr El-Din</title>
+<!-- PWA: Makes the app installable on mobile home screen -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="لوحة التحكم | بدر الدين">
+<meta name="application-name" content="لوحة التحكم | بدر الدين">
+<meta name="theme-color" content="#1a3a2a">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark:  #1a3a2a;
+    --green-mid:   #2d6a4f;
+    --green-light: #52b788;
+    --green-pale:  #d8f3dc;
+    --gold:        #f4a261;
+    --gold-light:  #fef3e2;
+    --white:       #fafafa;
+    --grey-light:  #f0f4f1;
+    --grey-mid:    #c8d8cc;
+    --grey-text:   #5a6b61;
+    --danger:      #e63946;
+    --shadow:      0 4px 24px rgba(26,58,42,0.10);
+    --radius:      16px;
+    --radius-sm:   10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--grey-light);
+    color: var(--green-dark);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+    padding: 24px 20px 20px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(26,58,42,0.25);
+  }
+  .header-logo {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--green-light);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .header-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1.2;
+  }
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--green-pale);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  /* ── Home button ── */
+  .home-btn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1000;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    color: var(--green-dark);
+    font-size: 20px;
+    text-decoration: none;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(82,183,136,0.12);
+  }
+  .home-btn:active { background: var(--green-pale); }
+
+  /* ── Container ── */
+  .container { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(82,183,136,0.12);
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--green-mid);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--grey-mid);
+  }
+
+  /* ── Data Table ── */
+  .table-wrap { overflow-x: auto; }
+  table.dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.dash-table th {
+    background: var(--green-pale);
+    color: var(--green-dark);
+    font-weight: 700;
+    text-align: center;
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+  table.dash-table td {
+    text-align: center;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--grey-mid);
+    font-family: 'DM Mono', monospace;
+    color: var(--green-dark);
+  }
+  table.dash-table tr:last-child td { border-bottom: none; }
+  table.dash-table tr:nth-child(even) td { background: var(--grey-light); }
+  table.dash-table td.name-cell {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    text-align: right;
+  }
+  .badge-flag {
+    display: inline-block;
+    background: #FFC7CE;
+    color: #9C0006;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .empty-note {
+    font-size: 13px;
+    color: var(--grey-text);
+    text-align: center;
+    padding: 12px 0;
+  }
+
+  /* ── Loading State ── */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,58,42,0.6);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-overlay.visible { display: flex; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(255,255,255,0.2);
+    border-top-color: var(--green-light);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: white; font-size: 15px; font-weight: 600; }
+
+  /* ── Error ── */
+  .error-msg {
+    display: none;
+    background: #fce4e4;
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .error-msg.visible { display: block; }
+</style>
+</head>
+<body>
+
+<a href="home.html" class="home-btn" aria-label="الرئيسية · Home">🏠</a>
+
+<div class="header">
+  <div class="header-logo">Badr El-Din Farms · بدر الدين</div>
+  <div class="header-title">لوحة التحكم</div>
+  <div class="header-subtitle">Business Manager Dashboard</div>
+</div>
+
+<div class="container">
+
+  <!-- Error -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Stock by Flavor -->
+  <div class="card" style="animation-delay:0.05s">
+    <div class="card-title">🌿 المخزون حسب النكهة · Stock by Flavor</div>
+    <div class="table-wrap">
+      <table class="dash-table" id="stockTable">
+        <thead>
+          <tr>
+            <th>النكهة · Flavor</th>
+            <th>المخزون الحالي · Current Stock</th>
+            <th>تحت الحد الأدنى · Below Threshold</th>
+          </tr>
+        </thead>
+        <tbody id="stockTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sales by Distributor -->
+  <div class="card" style="animation-delay:0.10s">
+    <div class="card-title">🏬 المبيعات حسب الموزع · Sales by Distributor</div>
+    <div class="table-wrap">
+      <table class="dash-table" id="salesTable">
+        <thead>
+          <tr>
+            <th>الموزع · Distributor</th>
+            <th>المطلوب · Ordered</th>
+            <th>المسلّم · Delivered</th>
+            <th>نسبة التنفيذ · Fill Rate</th>
+          </tr>
+        </thead>
+        <tbody id="salesTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pending Orders -->
+  <div class="card" style="animation-delay:0.15s">
+    <div class="card-title">📋 الطلبات المعلّقة · Pending Orders</div>
+    <div class="table-wrap">
+      <table class="dash-table" id="pendingTable">
+        <thead>
+          <tr>
+            <th>رقم الطلب · Order</th>
+            <th>الموزع · Distributor</th>
+            <th>التاريخ · Date</th>
+            <th>المتبقي · Outstanding</th>
+            <th>أيام مفتوح · Days Open</th>
+          </tr>
+        </thead>
+        <tbody id="pendingTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">جاري التحميل... / Loading...</div>
+</div>
+
+<script>
+  // ── Apps Script Web App endpoint ──
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkDx5nDV73amoXgEb34h-PfPHy95DMcUsyqtIhwv5EXorz6vQXYws0S5Ht8SP_6NBn_w/exec";
+
+  // ── Init ──
+  window.onload = function() {
+    loadDashboard();
+  };
+
+  function loadDashboard() {
+    setLoading(true, 'جاري التحميل... / Loading...');
+    fetch(SCRIPT_URL + '?action=getDashboardData')
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
+        if (!data.success) {
+          showError('فشل تحميل البيانات · Failed to load data: ' + (data.error || ''));
+          return;
+        }
+        renderStock(data.stockByFlavor);
+        renderSales(data.salesByDistributor);
+        renderPending(data.pendingOrders);
+      })
+      .catch(err => {
+        setLoading(false);
+        showError('فشل الاتصال بالخادم · Connection error: ' + err.message);
+      });
+  }
+
+  function renderStock(rows) {
+    const body = document.getElementById('stockTableBody');
+    if (!rows || rows.length === 0) {
+      body.innerHTML = '<tr><td colspan="3" class="empty-note">لا توجد بيانات · No data</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map(r => `
+      <tr>
+        <td class="name-cell">${r.flavor}</td>
+        <td>${r.currentStock}</td>
+        <td>${r.belowThreshold === 'YES' ? '<span class="badge-flag">YES</span>' : (r.belowThreshold || '—')}</td>
+      </tr>`).join('');
+  }
+
+  function renderSales(rows) {
+    const body = document.getElementById('salesTableBody');
+    if (!rows || rows.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="empty-note">لا توجد بيانات · No data</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map(r => `
+      <tr>
+        <td class="name-cell">${r.distributor}</td>
+        <td>${r.casesOrdered}</td>
+        <td>${r.casesDelivered}</td>
+        <td>${formatPercent(r.fillRate)}</td>
+      </tr>`).join('');
+  }
+
+  function renderPending(rows) {
+    const body = document.getElementById('pendingTableBody');
+    if (!rows || rows.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" class="empty-note">لا توجد طلبات معلّقة · No pending orders</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map(r => `
+      <tr>
+        <td class="name-cell">${r.orderId}</td>
+        <td>${r.distributor}</td>
+        <td>${r.date}</td>
+        <td>${r.casesOutstanding}</td>
+        <td>${r.daysOpen}</td>
+      </tr>`).join('');
+  }
+
+  function formatPercent(fraction) {
+    const n = Number(fraction);
+    if (isNaN(n)) return '—';
+    return (n * 100).toFixed(1) + '%';
+  }
+
+  function setLoading(isLoading, text) {
+    document.getElementById('loadingOverlay').className = isLoading ? 'loading-overlay visible' : 'loading-overlay';
+    if (text) document.getElementById('loadingText').textContent = text;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.className = 'error-msg visible';
+  }
+
+  function hideError() {
+    document.getElementById('errorMsg').className = 'error-msg';
+  }
+</script>
+</body>
+</html>

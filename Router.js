@@ -20,6 +20,7 @@
 //  GET  ?action=getReturnContext    → flavors + distributors for Returns app
 //  GET  ?action=getProductionContext → flavors for Production/Write-off app
 //  GET  ?action=getDistributors     → distributor slug+name list for order.html
+//  GET  ?action=getDashboardData    → DashboardBackend: _getDashboardData()
 //  GET  (no action)                 → Serve DeliveryApp.html (desktop fallback)
 //  POST action=submitDelivery       → DeliveryBackend:    submitDelivery()
 //  POST action=submitOrder          → OrderBackend:       submitOrder()
@@ -88,6 +89,18 @@ function doGet(e) {
         success: true,
         distributors: config.distributors.map(d => ({ slug: d.slug, name: d.name }))
       }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Dashboard app API: fetch stock, sales, and pending-orders data for
+  // GitHub Pages frontend — read-only, no recompute (Business Manager Dashboard)
+  if (action === "getDashboardData") {
+    const ss = SpreadsheetApp.openById(
+      PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID")
+    );
+    const dashboardData = _getDashboardData(ss);
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, ...dashboardData }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
