@@ -291,3 +291,172 @@ function _buildQCRecordsSheet(ss) {
 
   Logger.log("✅ QC_Records sheet built.");
 }
+
+// ────────────────────────────────────────────────────────────
+//  🏭  PENDING-QUEUE READS — Sub-task PT6
+//  Read-only, self-contained (open both spreadsheets themselves,
+//  same style as _notifyQCDecision in QualityBackend.js) so
+//  Router.js stays a pure dispatcher: call one of these, spread the
+//  result into the JSON response, no logic in Router.js itself —
+//  same precedent as DashboardBackend.js's _getDashboardData(ss).
+//  Each returns an already-shaped { flavors, <list> } object.
+//  Per-flavor qtys are joined from the matching *_Lines table using
+//  the same map-then-iterate pattern as _getOpenOrders in
+//  DeliveryBackend.js — not a new pattern.
+// ────────────────────────────────────────────────────────────
+
+// Production Engineer's queue: requests with no run logged against them yet
+function _getPendingProductionRequests() {
+  const mainSs = SpreadsheetApp.openById(
+    PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID")
+  );
+  const config = _getConfig(mainSs);
+
+  const prodSs    = _getProductionSpreadsheet();
+  const reqSheet  = _getSheet(prodSs, "🏭 Production_Requests");
+  const lineSheet = _getSheet(prodSs, "🏭 Production_Request_Lines");
+  const reqData   = reqSheet.getDataRange().getValues();
+  const lineData  = lineSheet.getDataRange().getValues().slice(1);
+
+  // Request_ID → { Flavor_Name → Qty_Requested }
+  const linesMap = {};
+  lineData.forEach(r => {
+    const [, requestId, , flavorName, qty] = r;
+    if (!linesMap[requestId]) linesMap[requestId] = {};
+    linesMap[requestId][flavorName] = (linesMap[requestId][flavorName] || 0) + (Number(qty) || 0);
+  });
+
+  const pendingRequests = [];
+  for (let i = 1; i < reqData.length; i++) {
+    const row       = reqData[i];
+    const requestId = row[0];
+    const status    = row[3];
+    if (!requestId) continue;
+    if (status !== "Requested") continue;
+
+    const rawTimestamp = row[1];
+    const timestamp = rawTimestamp instanceof Date
+      ? Utilities.formatDate(rawTimestamp, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm")
+      : String(rawTimestamp);
+
+    const lines = linesMap[requestId] || {};
+    const qtys  = config.flavors.map(f => lines[f] || 0);
+    const total = qtys.reduce((s, q) => s + q, 0);
+
+    pendingRequests.push({
+      requestId:   String(requestId),
+      requestedBy: String(row[2]),
+      timestamp:   timestamp,
+      notes:       row[4] || "",
+      qtys:        qtys,
+      total:       total
+    });
+  }
+
+  return { flavors: config.flavors, pendingRequests: pendingRequests };
+}
+
+// Quality Engineer's queue: runs awaiting a QC decision
+function _getPendingQCRuns() {
+  const mainSs = SpreadsheetApp.openById(
+    PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID")
+  );
+  const config = _getConfig(mainSs);
+
+  const prodSs    = _getProductionSpreadsheet();
+  const runSheet  = _getSheet(prodSs, "🏭 Production_Runs");
+  const lineSheet = _getSheet(prodSs, "🏭 Production_Run_Lines");
+  const runData   = runSheet.getDataRange().getValues();
+  const lineData  = lineSheet.getDataRange().getValues().slice(1);
+
+  // Run_ID → { Flavor_Name → Qty_Produced }
+  const linesMap = {};
+  lineData.forEach(r => {
+    const [, runId, , flavorName, qty] = r;
+    if (!linesMap[runId]) linesMap[runId] = {};
+    linesMap[runId][flavorName] = (linesMap[runId][flavorName] || 0) + (Number(qty) || 0);
+  });
+
+  const pendingRuns = [];
+  for (let i = 1; i < runData.length; i++) {
+    const row      = runData[i];
+    const runId    = row[0];
+    const qcStatus = row[5];
+    if (!runId) continue;
+    if (qcStatus !== "Pending") continue;
+
+    const rawDate = row[2];
+    const date = rawDate instanceof Date
+      ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), "yyyy-MM-dd")
+      : String(rawDate).substring(0, 10);
+
+    const lines = linesMap[runId] || {};
+    const qtys  = config.flavors.map(f => lines[f] || 0);
+    const total = qtys.reduce((s, q) => s + q, 0);
+
+    pendingRuns.push({
+      runId:     String(runId),
+      requestId: String(row[1]),
+      date:      date,
+      lotNumber: String(row[3]),
+      notes:     row[6] || "",
+      qtys:      qtys,
+      total:     total
+    });
+  }
+
+  return { flavors: config.flavors, pendingRuns: pendingRuns };
+}
+
+// Inventory team's queue: Approved runs not yet pulled into the warehouse
+function _getPendingInventoryPulls() {
+  const mainSs = SpreadsheetApp.openById(
+    PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID")
+  );
+  const config = _getConfig(mainSs);
+
+  const prodSs    = _getProductionSpreadsheet();
+  const runSheet  = _getSheet(prodSs, "🏭 Production_Runs");
+  const lineSheet = _getSheet(prodSs, "🏭 Production_Run_Lines");
+  const runData   = runSheet.getDataRange().getValues();
+  const lineData  = lineSheet.getDataRange().getValues().slice(1);
+
+  // Run_ID → { Flavor_Name → Qty_Produced }
+  const linesMap = {};
+  lineData.forEach(r => {
+    const [, runId, , flavorName, qty] = r;
+    if (!linesMap[runId]) linesMap[runId] = {};
+    linesMap[runId][flavorName] = (linesMap[runId][flavorName] || 0) + (Number(qty) || 0);
+  });
+
+  const pendingPulls = [];
+  for (let i = 1; i < runData.length; i++) {
+    const row      = runData[i];
+    const runId    = row[0];
+    const qcStatus = row[5];
+    const pulledBy = row[7];
+    if (!runId) continue;
+    if (qcStatus !== "Approved" || pulledBy) continue;
+
+    const rawDate = row[2];
+    const date = rawDate instanceof Date
+      ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), "yyyy-MM-dd")
+      : String(rawDate).substring(0, 10);
+
+    const lines = linesMap[runId] || {};
+    const qtys  = config.flavors.map(f => lines[f] || 0);
+    const total = qtys.reduce((s, q) => s + q, 0);
+
+    pendingPulls.push({
+      runId:     String(runId),
+      requestId: String(row[1]),
+      date:      date,
+      lotNumber: String(row[3]),
+      notes:     row[6] || "",
+      qtys:      qtys,
+      total:     total
+    });
+  }
+
+  return { flavors: config.flavors, pendingPulls: pendingPulls };
+}

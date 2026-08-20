@@ -12,6 +12,13 @@
 //  • Inventory.gs         → Inventory spreadsheet + movements, incl.
 //                           _logWriteOffMovements (no Backend file/sheet
 //                           of its own — called directly from this Router)
+//  • ProductionTracker.gs → Production Tracker spreadsheet creation/access,
+//                           sheet builders, and the three pending-queue
+//                           reads below (no doGet/doPost)
+//  • ProductionRequestBackend.gs → submitProductionRequest() (no doGet/doPost)
+//  • ProductionRunBackend.gs     → submitProductionRun() (no doGet/doPost)
+//  • QualityBackend.gs           → submitQCDecision() (no doGet/doPost)
+//  • InventoryPullBackend.gs     → submitInventoryPull() (no doGet/doPost)
 //  • DeliveryApp.html     → Delivery app UI (Apps Script hosted, desktop fallback)
 //  • order.html           → Order app UI (GitHub Pages hosted, distributors)
 //  ─────────────────────────────────────────────────────────
@@ -21,12 +28,19 @@
 //  GET  ?action=getProductionContext → flavors for Production/Write-off app
 //  GET  ?action=getDistributors     → distributor slug+name list for order.html
 //  GET  ?action=getDashboardData    → DashboardBackend: _getDashboardData()
+//  GET  ?action=getPendingProductionRequests → ProductionTracker: _getPendingProductionRequests()
+//  GET  ?action=getPendingQCRuns    → ProductionTracker: _getPendingQCRuns()
+//  GET  ?action=getPendingInventoryPulls → ProductionTracker: _getPendingInventoryPulls()
 //  GET  (no action)                 → Serve DeliveryApp.html (desktop fallback)
 //  POST action=submitDelivery       → DeliveryBackend:    submitDelivery()
 //  POST action=submitOrder          → OrderBackend:       submitOrder()
 //  POST action=submitReturn         → ReturnsBackend:     submitReturn()
 //  POST action=submitProduction     → ProductionBackend:  submitProduction()
 //  POST action=submitWriteOff       → Inventory.gs:       _logWriteOffMovements()
+//  POST action=submitProductionRequest → ProductionRequestBackend: submitProductionRequest()
+//  POST action=submitProductionRun  → ProductionRunBackend: submitProductionRun()
+//  POST action=submitQCDecision     → QualityBackend:      submitQCDecision()
+//  POST action=submitInventoryPull  → InventoryPullBackend: submitInventoryPull()
 // ============================================================
 
 // ────────────────────────────────────────────────────────────
@@ -104,6 +118,30 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Production Engineer's queue: requests still needing a run logged
+  if (action === "getPendingProductionRequests") {
+    const data = _getPendingProductionRequests();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, ...data }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Quality Engineer's queue: runs awaiting a QC decision
+  if (action === "getPendingQCRuns") {
+    const data = _getPendingQCRuns();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, ...data }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Inventory team's queue: Approved runs not yet pulled into the warehouse
+  if (action === "getPendingInventoryPulls") {
+    const data = _getPendingInventoryPulls();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, ...data }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Fallback: serve the desktop delivery app HTML
   const ss         = SpreadsheetApp.openById(
     PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID")
@@ -166,6 +204,38 @@ function doPost(e) {
     // not be silently absorbed via _logSyncError (there's no primary record to protect).
     if (action === "submitWriteOff") {
       const result = _logWriteOffMovements(payload.reason, payload.productionDate, payload.qtys);
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, ...result }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Route: production request submission (Production Lifecycle)
+    if (action === "submitProductionRequest") {
+      const result = submitProductionRequest(payload);
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, ...result }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Route: production run submission (Production Lifecycle)
+    if (action === "submitProductionRun") {
+      const result = submitProductionRun(payload);
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, ...result }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Route: QC decision submission (Production Lifecycle)
+    if (action === "submitQCDecision") {
+      const result = submitQCDecision(payload);
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, ...result }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Route: inventory pull confirmation (Production Lifecycle)
+    if (action === "submitInventoryPull") {
+      const result = submitInventoryPull(payload);
       return ContentService
         .createTextOutput(JSON.stringify({ success: true, ...result }))
         .setMimeType(ContentService.MimeType.JSON);
