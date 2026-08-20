@@ -153,7 +153,7 @@ function _buildProductionRunsSheet(ss) {
   ws.setTabColor("#BF9000");
 
   const DARK_GOLD = "#7F6000", WHITE = "#FFFFFF", LIGHT_GOLD = "#FFF2CC";
-  const headers = ["Run_ID", "Request_ID", "Date", "Lot_Number", "Total_Produced", "QC_Status", "Notes"];
+  const headers = ["Run_ID", "Request_ID", "Date", "Lot_Number", "Total_Produced", "QC_Status", "Notes", "Inventory_Pulled_By", "Inventory_Pulled_Timestamp"];
 
   ws.getRange(1, 1, 1, headers.length)
     .setValues([headers])
@@ -180,6 +180,8 @@ function _buildProductionRunsSheet(ss) {
   ws.setColumnWidth(5, 130);
   ws.setColumnWidth(6, 110);
   ws.setColumnWidth(7, 200);
+  ws.setColumnWidth(8, 150);
+  ws.setColumnWidth(9, 170);
 
   ws.setFrozenRows(1);
   ws.setFrozenColumns(2);
