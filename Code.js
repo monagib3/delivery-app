@@ -810,6 +810,11 @@ function _nextSequentialId(counterProperty, prefix) {
 //  DL_COUNTER          "DL-"    Delivery_Lines (Phase 2 — not yet wired to a caller)
 //  RL_COUNTER          "RL-"    Return_Lines (Phase 2 — not yet wired to a caller)
 //  PL_COUNTER          "PL-"    Production_Lines (Phase 2 — not yet wired to a caller)
+//  PRQ_COUNTER         "PRQ-"   Production_Requests (Production Lifecycle PT1 — not yet wired to a caller)
+//  PRQL_COUNTER        "PRQL-"  Production_Request_Lines (Production Lifecycle PT1 — not yet wired to a caller)
+//  PRUN_COUNTER        "PRUN-"  Production_Runs (Production Lifecycle PT1 — not yet wired to a caller)
+//  PRUNL_COUNTER       "PRUNL-" Production_Run_Lines (Production Lifecycle PT1 — not yet wired to a caller)
+//  QC_COUNTER          "QC-"    QC_Records (Production Lifecycle PT1 — not yet wired to a caller)
 //
 //  Note: ORD-XXX / DEL-XXX / RET-XXX header IDs are currently generated
 //  by counting sheet rows, not via _nextSequentialId(). These will be
@@ -1184,7 +1189,7 @@ function _buildTeamContactsSheet(ss) {
   ws.clearFormats();
   ws.setTabColor("#616161");
 
-  const headers = ["Contact_ID", "Name", "Phone", "CallMeBot_ApiKey", "Is_Active"];
+  const headers = ["Contact_ID", "Name", "Phone", "CallMeBot_ApiKey", "Is_Active", "Role"];
   ws.getRange(1, 1, 1, headers.length)
     .setValues([headers])
     .setFontWeight("bold")
@@ -1198,7 +1203,8 @@ function _buildTeamContactsSheet(ss) {
     m.name,
     m.phone,
     m.apiKey,
-    true
+    true,
+    ""
   ]);
   ws.getRange(2, 1, rows.length, headers.length).setValues(rows);
 
@@ -1207,6 +1213,7 @@ function _buildTeamContactsSheet(ss) {
   ws.setColumnWidth(3, 120);
   ws.setColumnWidth(4, 150);
   ws.setColumnWidth(5, 90);
+  ws.setColumnWidth(6, 130);
 
   Logger.log("✅ Team_Contacts sheet built.");
 }

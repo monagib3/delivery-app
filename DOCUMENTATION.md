@@ -72,6 +72,7 @@ Two spreadsheets, one Apps Script project, six GitHub Pages frontends: `order.ht
 | `ReturnsBackend.gs` | `submitReturn(payload)` — writes a header row to `↩️ Returns` and line rows to `↩️ Return_Lines` (Phase 2 narrow schema), generates sequential `RET-XXX`/`RL-XXX` IDs via `_nextSequentialId` (Code.gs), sends a team-only WhatsApp notification (`_notifyReturn`), then calls `_logReturnInMovements` (Inventory.gs) non-blocking. |
 | `ProductionBackend.gs` | `submitProduction(payload)` — writes a header row to `🌱 Productions` and line rows to `🌱 Production_Lines` (Phase 2 narrow schema), generates sequential `PRD-XXX`/`PL-XXX` IDs via `_nextSequentialId` (Code.gs), sends a team-only WhatsApp notification (`_notifyProduction`), then calls `_logProductionInMovements` (Inventory.gs) non-blocking. |
 | `DashboardBackend.js` | `getDashboardData()` / `_getDashboardData(ss)` — read-only Business Manager Dashboard data. Reads `🌿 Per-Flavor Breakdown` and `📈 Per-Distributor Summary` cells directly (no recompute); extends `_getOpenOrders(ss)` (reused from `DeliveryBackend.gs`) with cases outstanding from `🚚 Delivery_Lines` and a timezone-safe `_daysOpen()` day count. No try/catch — matches the existing GET-read convention (only mutating POST actions wrap themselves). |
+| `ProductionTracker.js` | **Schema only (PT1) — no backend logic yet.** Production Tracker spreadsheet creation/access (`_createOrGetProductionSpreadsheet`, `_getProductionSpreadsheet`), and the 5 sheet builders for the Production Lifecycle domain (`_buildProductionRequestsSheet`, `_buildProductionRequestLinesSheet`, `_buildProductionRunsSheet`, `_buildProductionRunLinesSheet`, `_buildQCRecordsSheet`). See §6B. |
 
 **Shared global scope:** All `.gs` files in one Apps Script project share scope — no imports needed. `CONFIG`, `_getSheet`, `_sendWhatsApp`, `_logSyncError`, `_removeDefaultSheet` are all callable from any file.
 
@@ -153,6 +154,28 @@ Column 4 of ` Inventory Movements`, inserted after Reference and before Product.
 
 ---
 
+## 6B. Production Tracker Spreadsheet — "Badr El-Din Production Tracker" (In progress — schema only)
+
+**Status: schema only. No backend functions, Router routes, or frontend exist yet — do not treat this as a working feature.** Third spreadsheet, separate from the Order Tracker and Inventory Tracker, for a future Production Lifecycle domain (request → production run → QC). Created/accessed via `_createOrGetProductionSpreadsheet()`/`_getProductionSpreadsheet()` in `ProductionTracker.js`, ID stored in Script Properties as `PRODUCTION_SPREADSHEET_ID`.
+
+| Sheet | Columns | Tab color |
+|---|---|---|
+| 🏭 Production_Requests | Request_ID, Timestamp, Requested_By, Status, Notes | Teal `#31859C`. Status dropdown: Requested / Fulfilled. |
+| 🏭 Production_Request_Lines | Line_ID, Request_ID, Flavor_ID, Flavor_Name, Qty_Requested | Teal `#31859C` (matches header sheet) |
+| 🏭 Production_Runs | Run_ID, Request_ID, Date, Lot_Number, Total_Produced, QC_Status, Notes | Gold `#BF9000`. QC_Status dropdown: Pending / Approved / Rejected. |
+| 🏭 Production_Run_Lines | Line_ID, Run_ID, Flavor_ID, Flavor_Name, Qty_Produced | Gold `#BF9000` (matches header sheet) |
+| 🏭 QC_Records | QC_ID, Run_ID, Timestamp, QC_By, Decision, Notes | Purple `#674EA7`. Decision dropdown: Pending / Approved / Rejected — same vocabulary as `Production_Runs.QC_Status` deliberately, since Decision is the per-check mirror of it. |
+
+All 5 sheets follow the same header/zebra-stripe/frozen-row conventions as the main spreadsheet's narrow header/lines sheets (see §8).
+
+**New counters** (documentation-only entries in the `Code.js` counter registry, **not yet wired to a caller**): `PRQ_COUNTER` ("PRQ-"), `PRQL_COUNTER` ("PRQL-"), `PRUN_COUNTER` ("PRUN-"), `PRUNL_COUNTER` ("PRUNL-"), `QC_COUNTER` ("QC-"). No Script Properties seeding was needed — no historical data exists, and `_nextSequentialId()` already defaults an unset property to 0, so the first ID generated (once a backend calls it) will naturally be `-001`.
+
+**`Team_Contacts` (main spreadsheet) gained a `Role` column** (6th column) as part of this sub-task — header only, not yet populated, not yet read by any code.
+
+**When backend work happens:** `Production_Request_Lines`/`Production_Run_Lines` must source Flavor_ID/Flavor_Name from `🌿 Flavors` via the same runtime `Flavor_Name → Flavor_ID` lookup pattern already used by `Order_Lines`/`Delivery_Lines`/`Return_Lines`/`Production_Lines` — not a separate or hardcoded flavor list.
+
+---
+
 ## 7. Delivery → Inventory Sync
 
 When a delivery is submitted via `submitDelivery(payload)` in `DeliveryBackend.gs`:
@@ -205,6 +228,7 @@ When a delivery is submitted via `submitDelivery(payload)` in `DeliveryBackend.g
 | **Fixed Home button on internal pages** | Complete — `index.html`, `returns.html`, `inventory-ops.html` each got a fixed top-left 🏠 link to `home.html` (`.home-btn`, 44×44px circle, `top:12px; left:12px; z-index:1000`, styled from each file's existing green palette). `order.html`/`home.html` untouched — out of scope. See `CLAUDE.md` §7F. |
 | **Git version control setup** | Complete — local working copy (previously ungit'd) connected to the existing GitHub remote `https://github.com/monagib3/delivery-app.git`; local `main` tracks `origin/main`. Reconciled via `git merge --allow-unrelated-histories`, resolving 3 add/add conflicts in favor of local edits. `.gitignore` added for `.claude/settings.local.json` (already-tracked prior copy not yet untracked — needs `git rm --cached`). Commits pushed directly to `main`, no PR workflow. See `CLAUDE.md` §7G. |
 | **Business Manager Dashboard** | Complete — new `DashboardBackend.js` (`getDashboardData()`/`_getDashboardData(ss)`) reads already-computed cells straight from `🌿 Per-Flavor Breakdown` and `📈 Per-Distributor Summary` (no recompute), and extends `_getOpenOrders(ss)` (reused from `DeliveryBackend.js`, not duplicated) with cases outstanding from `🚚 Delivery_Lines` and a timezone-safe `_daysOpen()` day count. `Router.js` gained `?action=getDashboardData` (same shape as the other GET context routes). New `dashboard.html` frontend reuses `returns.html`'s palette/header/home-btn/loading/error blocks with one new read-only `.dash-table` component; `home.html` gained a 5th launcher card. Deployed as a new Apps Script version and verified live end-to-end. See `CLAUDE.md` §7H. |
+| **Production Lifecycle — Sub-task PT1 (foundation)** | **In progress — schema only.** New "Badr El-Din Production Tracker" spreadsheet (`PRODUCTION_SPREADSHEET_ID`) with 5 sheets (`🏭 Production_Requests`, `🏭 Production_Request_Lines`, `🏭 Production_Runs`, `🏭 Production_Run_Lines`, `🏭 QC_Records`) built via new file `ProductionTracker.js`; 5 new counters (`PRQ_COUNTER`/`PRQL_COUNTER`/`PRUN_COUNTER`/`PRUNL_COUNTER`/`QC_COUNTER`) documented in the `Code.js` counter registry, not yet wired to a caller; `Team_Contacts` (main spreadsheet) gained a `Role` column, header only, not yet populated or read by any code. **No backend functions, Router routes, or frontend exist yet** — next sub-tasks (PT2/PT3+) will add those. See `CLAUDE.md` §7I and DOCUMENTATION.md §6B. |
 | Per-flavor `Reorder Point` column (replacing flat thresholds) | Deferred until real consumption data exists to set meaningful per-flavor values |
 | Production In automation | Currently fully manual entry into Inventory Movements; no automation hook exists |
 | Multi-warehouse support | Schema supports it (Warehouse column, dropdown from Lists) but only "Main Warehouse" exists today; no per-warehouse Balance breakout yet |
