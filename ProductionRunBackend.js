@@ -34,7 +34,10 @@
 //  Request_ID is a real foreign key, not free text: if payload.requestId
 //  doesn't match a row in 🏭 Production_Requests, the whole submission
 //  is rejected before anything is written — a run must always be
-//  traceable back to the request that authorized it.
+//  traceable back to the request that authorized it. The matched
+//  request's Status is also checked (must be "Requested") — a second
+//  run can't be logged against a request that's already Fulfilled,
+//  same hard-error-before-any-write pattern as the FK check itself.
 //  ─────────────────────────────────────────────────────────
 //  No validation against the original request's per-flavor quantities —
 //  actual output is allowed to vary from what was requested (over-run,
@@ -92,6 +95,14 @@ function submitProductionRun(payload) {
     }
     if (reqRowIndex === -1) {
       throw new Error(`Production Request ${payload.requestId} not found — cannot log a run against an unknown request.`);
+    }
+
+    // Reject before writing anything if the request has already been
+    // fulfilled — prevents a second run from being logged against the
+    // same request (stale dropdown, two people working at once, etc.).
+    const currentStatus = reqData[reqRowIndex][3]; // Status column
+    if (currentStatus !== "Requested") {
+      throw new Error(`Production Request ${payload.requestId} has Status "${currentStatus}" — already fulfilled, cannot log another run against it.`);
     }
 
     // Flavor quantities in config.flavors order
