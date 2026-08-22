@@ -133,6 +133,12 @@
     color: var(--white);
     box-shadow: 0 4px 12px rgba(230,57,70,0.3);
   }
+  .mode-btn.active[data-submode="manual"],
+  .mode-btn.active[data-submode="batch"] {
+    background: linear-gradient(135deg, var(--teal-mid), var(--teal-dark));
+    color: var(--white);
+    box-shadow: 0 4px 12px rgba(0,105,92,0.3);
+  }
 
   /* ── Card ── */
   .card {
@@ -196,6 +202,11 @@
     box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
   }
   .hidden { display: none !important; }
+
+  /* ── Batch Pull run badge ── */
+  .order-badge { display: none; background: var(--green-pale); border: 1px solid var(--green-light); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 10px; font-size: 13px; color: var(--green-dark); line-height: 1.8; }
+  .order-badge.visible { display: block; animation: fadeUp 0.3s ease; }
+  .order-badge strong { color: var(--green-mid); }
 
   /* ── Flavor Grid ── */
   .flavor-grid {
@@ -531,19 +542,41 @@
     <button class="mode-btn" data-mode="writeoff" onclick="switchMode('writeoff')">🗑️ هالك · Write-off</button>
   </div>
 
+  <!-- Production sub-mode toggle: Manual Entry vs From Approved Batch -->
+  <div class="card" id="subModeCard" style="animation-delay:0.03s; padding: 5px;">
+    <div class="mode-toggle" style="margin-bottom: 0; box-shadow: none; padding: 0;">
+      <button class="mode-btn submode-btn active" data-submode="manual" onclick="switchSubMode('manual')">✍️ إدخال يدوي · Manual Entry</button>
+      <button class="mode-btn submode-btn" data-submode="batch" onclick="switchSubMode('batch')">📥 من دفعة معتمدة · From Approved Batch</button>
+    </div>
+  </div>
+
   <!-- Step 1: Transaction details (mode-dependent) -->
   <div class="card" style="animation-delay:0.05s">
     <div class="card-title" id="detailsCardTitle">📦 تفاصيل الإنتاج · Production Details</div>
 
     <!-- Production In fields -->
     <div id="fieldsProduction">
-      <div class="field">
-        <label>رقم اللوط · Lot Number</label>
-        <input type="text" id="lotNumber" placeholder="e.g. LOT-2026-06-24">
+      <!-- Manual Entry sub-mode -->
+      <div id="manualProductionFields">
+        <div class="field">
+          <label>رقم اللوط · Lot Number</label>
+          <input type="text" id="lotNumber" placeholder="e.g. LOT-2026-06-24">
+        </div>
+        <div class="field">
+          <label>تاريخ الإنتاج · Production Date</label>
+          <input type="date" id="prodDateProduction">
+        </div>
       </div>
-      <div class="field">
-        <label>تاريخ الإنتاج · Production Date</label>
-        <input type="date" id="prodDateProduction">
+
+      <!-- From Approved Batch sub-mode -->
+      <div id="batchPullFields" class="hidden">
+        <div class="field">
+          <label>الدفعة المعتمدة · Approved Batch</label>
+          <select id="pullRunSelect" onchange="onPullRunSelected()">
+            <option value="">-- جاري التحميل... / Loading... --</option>
+          </select>
+        </div>
+        <div class="order-badge" id="pullRunBadge"></div>
       </div>
     </div>
 
@@ -566,11 +599,19 @@
     <div class="flavor-grid" id="flavorGrid"></div>
   </div>
 
-  <!-- Step 3: Notes (Production In only) -->
+  <!-- Step 3: Notes (Production In, Manual Entry only) -->
   <div class="card" id="notesCard" style="animation-delay:0.15s">
     <div class="card-title">📝 ملاحظات · Notes</div>
     <div class="field">
       <textarea id="notes" placeholder="أي ملاحظات إضافية... / Any additional notes..."></textarea>
+    </div>
+  </div>
+
+  <!-- Step 3 (Batch Pull only): Pulled By, takes Notes' place -->
+  <div class="card hidden" id="pulledByCard" style="animation-delay:0.15s">
+    <div class="card-title">🧑‍💼 تم السحب بواسطة · Pulled By</div>
+    <div class="field">
+      <input type="text" id="pulledBy" placeholder="اسم الموظف · Employee name">
     </div>
   </div>
 
@@ -620,6 +661,9 @@
   // ── State ──
   let FLAVORS = [];
   let MODE = 'production'; // 'production' | 'writeoff'
+  let SUBMODE = 'manual';  // 'manual' | 'batch' — only meaningful while MODE === 'production'
+  let PENDING_PULLS = [];  // cached getPendingInventoryPulls() result
+  let selectedRun = null;  // the chosen PENDING_PULLS entry, needed later by onSuccess()
 
   // ── Init ──
   window.onload = function() {
@@ -691,13 +735,23 @@
     item.classList.toggle('has-value', val > 0);
   }
 
+  function setFlavorGridReadOnly(readonly) {
+    FLAVORS.forEach((f, i) => {
+      document.getElementById(`qty-${i}`).disabled = readonly;
+      document.getElementById(`flavor-item-${i}`).querySelectorAll('.stepper-btn')
+        .forEach(btn => btn.style.display = readonly ? 'none' : '');
+    });
+  }
+
   // ── Mode Switching ──
   function switchMode(mode) {
     MODE = mode;
     hideError();
     resetQtys();
+    setFlavorGridReadOnly(false);
+    selectedRun = null;
 
-    document.querySelectorAll('.mode-btn').forEach(btn => {
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.mode === mode);
     });
 
@@ -705,6 +759,7 @@
     document.getElementById('fieldsProduction').classList.toggle('hidden', !isProduction);
     document.getElementById('fieldsWriteoff').classList.toggle('hidden', isProduction);
     document.getElementById('notesCard').classList.toggle('hidden', !isProduction);
+    document.getElementById('subModeCard').classList.toggle('hidden', !isProduction);
 
     document.getElementById('detailsCardTitle').textContent = isProduction
       ? '📦 تفاصيل الإنتاج · Production Details'
@@ -716,6 +771,94 @@
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.classList.toggle('mode-production', isProduction);
     submitBtn.classList.toggle('mode-writeoff', !isProduction);
+
+    if (isProduction) switchSubMode('manual');
+  }
+
+  // ── Production Sub-mode Switching (Manual Entry vs From Approved Batch) ──
+  function switchSubMode(subMode) {
+    SUBMODE = subMode;
+    hideError();
+    selectedRun = null;
+    resetQtys();
+    setFlavorGridReadOnly(subMode === 'batch');
+
+    document.querySelectorAll('.submode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.submode === subMode);
+    });
+
+    updateProductionSubModeUI();
+
+    if (subMode === 'batch') {
+      document.getElementById('pullRunSelect').value = '';
+      document.getElementById('pullRunBadge').className = 'order-badge';
+      loadPendingPulls();
+    }
+  }
+
+  function updateProductionSubModeUI() {
+    const isBatch = SUBMODE === 'batch';
+    document.getElementById('manualProductionFields').classList.toggle('hidden', isBatch);
+    document.getElementById('batchPullFields').classList.toggle('hidden', !isBatch);
+    document.getElementById('notesCard').classList.toggle('hidden', isBatch);
+    document.getElementById('pulledByCard').classList.toggle('hidden', !isBatch);
+    document.getElementById('qtyCardTitle').textContent = isBatch
+      ? '📦 كميات الدفعة المعتمدة · Approved Batch Quantities'
+      : '📦 الكميات المنتجة · Produced Quantities';
+  }
+
+  function loadPendingPulls() {
+    setLoading(true, 'جاري تحميل الدفعات المعتمدة... / Loading approved batches...');
+    fetch(SCRIPT_URL + '?action=getPendingInventoryPulls')
+      .then(res => res.json())
+      .then(data => {
+        setLoading(false);
+        if (!data.success) {
+          showError('فشل تحميل الدفعات المعتمدة · Failed to load approved batches: ' + (data.error || ''));
+          return;
+        }
+        PENDING_PULLS = data.pendingPulls;
+        buildPullDropdown();
+      })
+      .catch(err => {
+        setLoading(false);
+        showError('فشل الاتصال بالخادم · Connection error: ' + err.message);
+      });
+  }
+
+  function buildPullDropdown() {
+    const sel = document.getElementById('pullRunSelect');
+    if (PENDING_PULLS.length === 0) {
+      sel.innerHTML = '<option value="">-- لا توجد دفعات معتمدة بانتظار السحب / No approved batches pending pull --</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">-- اختر الدفعة · Select Batch --</option>';
+    PENDING_PULLS.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.runId;
+      opt.text  = `${r.runId} · ${r.lotNumber} · ${r.date}`;
+      sel.appendChild(opt);
+    });
+  }
+
+  function onPullRunSelected() {
+    const runId = document.getElementById('pullRunSelect').value;
+    hideError();
+    if (!runId) {
+      selectedRun = null;
+      document.getElementById('pullRunBadge').className = 'order-badge';
+      resetQtys();
+      return;
+    }
+    selectedRun = PENDING_PULLS.find(r => r.runId === runId);
+    document.getElementById('pullRunBadge').innerHTML = `
+      <strong>رقم الطلب / Request ID:</strong> ${selectedRun.requestId}<br>
+      ${selectedRun.notes ? `<strong>ملاحظات / Notes:</strong> ${selectedRun.notes}<br>` : ''}`;
+    document.getElementById('pullRunBadge').className = 'order-badge visible';
+    FLAVORS.forEach((f, i) => {
+      document.getElementById(`qty-${i}`).value = selectedRun.qtys[i] || 0;
+      onQtyChange(i);
+    });
   }
 
   // ── Review Modal ──
@@ -736,7 +879,45 @@
     const modalTitle  = document.getElementById('modalTitle');
     const confirmBtn  = document.getElementById('confirmBtn');
 
-    if (MODE === 'production') {
+    if (MODE === 'production' && SUBMODE === 'batch') {
+      if (!selectedRun) {
+        showError('الرجاء اختيار دفعة معتمدة · Please select an approved batch');
+        return;
+      }
+      const pulledBy = document.getElementById('pulledBy').value.trim();
+      if (!pulledBy) {
+        showError('الرجاء إدخال اسم من قام بالسحب · Please enter who pulled the batch');
+        return;
+      }
+
+      modalTitle.textContent = 'مراجعة سحب المخزون · Review Inventory Pull';
+      confirmBtn.classList.add('mode-production');
+      confirmBtn.classList.remove('mode-writeoff');
+
+      html = `
+        <div class="review-section">
+          <div class="review-section-title">معلومات الدفعة · Batch Info</div>
+          <div class="review-row"><span class="label">رقم الدفعة / Run ID</span><span class="value">${selectedRun.runId}</span></div>
+          <div class="review-row"><span class="label">رقم اللوط / Lot Number</span><span class="value">${selectedRun.lotNumber}</span></div>
+          <div class="review-row"><span class="label">التاريخ / Date</span><span class="value">${selectedRun.date}</span></div>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">الكميات · Quantities</div>
+          ${nonZero.map(f => `
+            <div class="review-row">
+              <span class="label">${f.name}</span>
+              <span class="value">${f.qty} كرتونة</span>
+            </div>`).join('')}
+        </div>
+        <div class="review-total">
+          <span>الإجمالي · Total</span>
+          <span>${total} كرتونة</span>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">تم السحب بواسطة · Pulled By</div>
+          <div style="font-size:14px;color:var(--green-dark)">${pulledBy}</div>
+        </div>`;
+    } else if (MODE === 'production') {
       const lotNumber = document.getElementById('lotNumber').value.trim();
       if (!lotNumber) {
         showError('الرجاء إدخال رقم اللوط · Please enter a lot number');
@@ -824,7 +1005,13 @@
     const qtys = FLAVORS.map((f, i) => parseFloat(document.getElementById(`qty-${i}`).value || 0));
     let body;
 
-    if (MODE === 'production') {
+    if (MODE === 'production' && SUBMODE === 'batch') {
+      body = {
+        action:   'submitInventoryPull',
+        runId:    selectedRun.runId,
+        pulledBy: document.getElementById('pulledBy').value.trim()
+      };
+    } else if (MODE === 'production') {
       body = {
         action:         'submitProduction',
         lotNumber:      document.getElementById('lotNumber').value.trim(),
@@ -864,7 +1051,16 @@
   function onSuccess(result) {
     document.getElementById('mainForm').style.display = 'none';
 
-    if (MODE === 'production') {
+    if (MODE === 'production' && SUBMODE === 'batch') {
+      document.getElementById('successTitleAr').textContent = 'تم سحب المخزون بنجاح!';
+      document.getElementById('successTitleEn').textContent = 'Inventory Pulled Successfully';
+      document.getElementById('successRefId').textContent = result.productionId;
+      document.getElementById('successMsg').innerHTML =
+        `تم سحب الدفعة <strong>${result.runId}</strong> (لوط <strong>${selectedRun.lotNumber}</strong>) إلى المخزون بنجاح.<br>
+         إجمالي الكميات: <strong>${selectedRun.total} كرتونة</strong><br><br>
+         Batch <strong>${result.runId}</strong> (lot <strong>${selectedRun.lotNumber}</strong>) has been pulled into inventory.<br>
+         Total: <strong>${selectedRun.total} cases</strong>`;
+    } else if (MODE === 'production') {
       document.getElementById('successTitleAr').textContent = 'تم تسجيل الإنتاج بنجاح!';
       document.getElementById('successTitleEn').textContent = 'Production Registered Successfully';
       document.getElementById('successRefId').textContent = result.productionId;
@@ -893,9 +1089,11 @@
     document.getElementById('lotNumber').value = '';
     document.getElementById('writeoffReason').value = '';
     document.getElementById('notes').value = '';
+    document.getElementById('pulledBy').value = '';
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('prodDateProduction').value = today;
     document.getElementById('prodDateWriteoff').value = '';
+    if (MODE === 'production') switchSubMode('manual');
     resetQtys();
   }
 
